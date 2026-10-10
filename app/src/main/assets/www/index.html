@@ -1,0 +1,1455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F141B">
+<title>Hunterline</title>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: phone-first app shell. Sticky top bar, one scrolling column, fixed bottom bar that is either the tab nav or a composer. The Me tab is a resident ID card with stats and an honor meter, followed by a log of consequences. */
+:root{
+  --bg:#E7EAEE; --surface:#F6F7F9; --raised:#FFFFFF; --ink:#141A22; --muted:#5A6674; --line:#CDD3DB;
+  --accent:#D13A1F; --accent-ink:#FFFFFF; --accent-text:#B42C13; --accent-soft:#F4D9D2;
+  --good:#1E7A4C; --good-soft:#D6EBDD; --bad:#B3261E; --bad-soft:#F6D8D5; --warn:#8F5B00; --warn-soft:#F3E4C0;
+  --font-display:'Dela Gothic One','Arial Black',Impact,sans-serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F141B; --surface:#161C25; --raised:#1C2430; --ink:#E8ECF1; --muted:#98A4B3; --line:#2A3441;
+    --accent:#E8553A; --accent-ink:#0F141B; --accent-text:#FF7A60; --accent-soft:#3A2420;
+    --good:#4CC28A; --good-soft:#17332A; --bad:#FF8A80; --bad-soft:#3A2020; --warn:#E8B04A; --warn-soft:#38301A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F141B; --surface:#161C25; --raised:#1C2430; --ink:#E8ECF1; --muted:#98A4B3; --line:#2A3441;
+  --accent:#E8553A; --accent-ink:#0F141B; --accent-text:#FF7A60; --accent-soft:#3A2420;
+  --good:#4CC28A; --good-soft:#17332A; --bad:#FF8A80; --bad-soft:#3A2020; --warn:#E8B04A; --warn-soft:#38301A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:6px}
+h1,h2,h3,p{margin:0}
+.muted{color:var(--muted)}
+
+.shell{max-width:560px;margin:0 auto;padding-inline:16px;padding-block-end:calc(84px + env(safe-area-inset-bottom,0px))}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;margin-inline:-16px;padding:10px 16px;min-height:56px;background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--font-display);font-size:19px;letter-spacing:.04em}
+.strap{margin-left:auto;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.iconbtn{display:inline-grid;place-items:center;width:36px;height:36px;margin-left:-8px;border-radius:50%}
+.iconbtn:hover{background:var(--raised)}
+.ttl{display:flex;align-items:center;gap:10px;min-width:0}
+.ttl .t1{font-weight:700;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttl .t2{display:block;font-family:var(--font-mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:6;width:100%;max-width:560px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.bar:empty{display:none}
+.nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:10px;color:var(--muted);font-size:11px;font-weight:500}
+.nav button[aria-current="page"]{color:var(--accent-text);font-weight:700}
+.nav .pip{position:absolute;top:4px;left:calc(50% + 6px);width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.composer{display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;max-height:120px;resize:none;padding:10px 14px;border-radius:20px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:6px 14px;font-size:13px}
+.btn:disabled{opacity:.45}
+.link{color:var(--accent-text);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.h1{font-family:var(--font-display);font-size:26px;line-height:1.15;text-wrap:balance}
+.sec{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-block:24px 4px;font-weight:500}
+.lede{color:var(--muted);margin-top:8px;max-width:46ch}
+.fine{font-size:13px;color:var(--muted);max-width:52ch}
+.empty{padding:20px 0;color:var(--muted)}
+.err{color:var(--accent-text);font-size:13px;min-height:1.2em}
+.note{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:13px;margin-block:12px}
+.mention{color:var(--accent-text);font-weight:600}
+.hd{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+
+/* Avatars: gradient plus one of six patterns, or an uploaded picture */
+.av{--h:215;--base:linear-gradient(145deg,hsl(var(--h) 55% 44%),hsl(calc(var(--h) + 28) 58% 26%));flex:none;position:relative;overflow:hidden;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--base);color:#fff;font-family:var(--font-display);font-size:15px;letter-spacing:.02em;text-shadow:0 1px 2px rgb(0 0 0 / .4)}
+.av.lg{width:72px;height:72px;font-size:24px}
+.av.sm{width:32px;height:32px;font-size:12px}
+.av.p0{background:repeating-radial-gradient(circle at 78% 22%,rgb(255 255 255 / .2) 0 2px,transparent 2px 8px),var(--base)}
+.av.p1{background:repeating-linear-gradient(135deg,rgb(255 255 255 / .17) 0 4px,transparent 4px 11px),var(--base)}
+.av.p2{background:radial-gradient(rgb(255 255 255 / .24) 1.6px,transparent 2.2px) 0 0/9px 9px,var(--base)}
+.av.p3{background:repeating-conic-gradient(from 0deg at 50% 50%,rgb(255 255 255 / .17) 0 9deg,transparent 9deg 18deg),var(--base)}
+.av.p4{background:linear-gradient(rgb(255 255 255 / .14) 1px,transparent 1px) 0 0/9px 9px,linear-gradient(90deg,rgb(255 255 255 / .14) 1px,transparent 1px) 0 0/9px 9px,var(--base)}
+.av.p5{background:repeating-linear-gradient(45deg,rgb(0 0 0 / .14) 0 5px,transparent 5px 12px),radial-gradient(circle at 30% 25%,rgb(255 255 255 / .22),transparent 55%),var(--base)}
+.av.has-img{background:var(--raised)}
+.av img{display:block;width:100%;height:100%;object-fit:cover}
+.avbtn{display:block;align-self:start;border-radius:50%}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;margin-inline:-16px;border-bottom:1px solid var(--line)}
+.seg button{padding:12px 0;text-align:center;font-weight:600;color:var(--muted);border-bottom:3px solid transparent}
+.seg button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.compose{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.compose textarea{width:100%;resize:none;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;padding:8px 0}
+.crow{display:flex;justify-content:space-between;align-items:center}
+.count{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.refresh{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.refresh .status{color:var(--muted);font-size:13px}
+.status b{font-family:var(--font-mono);font-weight:500;color:var(--ink)}
+.autorow{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted)}
+.switch{position:relative;flex:none;width:42px;height:24px;border-radius:999px;background:var(--line);transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--raised);box-shadow:0 1px 2px rgb(0 0 0 / .3);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--accent)}
+.switch[aria-checked="true"]::after{transform:translateX(18px)}
+@media (prefers-reduced-motion: reduce){.switch,.switch::after{transition:none}}
+
+.post{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.post[data-open]{cursor:pointer}
+.post.reply{grid-template-columns:32px minmax(0,1fr);gap:10px;padding:12px 0}
+.pb{min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline}
+.nm{font-weight:700}
+.dt{color:var(--muted)}
+.kind{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--muted)}
+.txt{margin-block:2px 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.post.detail .txt{font-size:18px;line-height:1.4}
+.acts{display:flex;flex-wrap:wrap;gap:2px;margin-left:-8px}
+.acts button{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+.acts button:hover{background:var(--raised)}
+.acts button.on{color:var(--accent-text)}
+.acts button.like.on svg{fill:currentColor}
+
+.typing{display:flex;align-items:center;gap:8px;padding:12px 0;color:var(--muted);font-size:13px}
+.dots{display:inline-flex;gap:4px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.2s}
+.dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.dots i{animation:none;opacity:.6}}
+
+.list .rowitem{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);width:100%}
+.rowitem .who{min-width:0}
+.rowitem .who b{display:block}
+.rowitem .who span{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowitem .end{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+.pip2{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.tag{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:1px 8px;background:var(--accent-soft);color:var(--accent-text);font-weight:500}
+.chipbtn{padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink)}
+.chipbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.msgs{display:flex;flex-direction:column;gap:6px;padding-block:14px}
+.bubble{max-width:82%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:6px}
+.bubble.them{align-self:flex-start;background:var(--raised);border:1px solid var(--line);border-bottom-left-radius:6px}
+.openers{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.choices{display:grid;gap:8px;margin:2px 0 6px;max-width:92%}
+.choice{padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;line-height:1.3}
+.choice:hover{border-color:var(--accent)}
+.choicehint{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* Consequences */
+.d{display:inline-flex;gap:4px;align-items:center;padding:1px 9px;border-radius:999px;border:1px solid currentColor;font-family:var(--font-mono);font-size:11px;white-space:nowrap}
+.d.up{color:var(--good)}
+.d.down{color:var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.tone{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:1px 8px;font-weight:500}
+.tone.good{background:var(--good-soft);color:var(--good)}
+.tone.bad{background:var(--bad-soft);color:var(--bad)}
+.tone.mixed{background:var(--warn-soft);color:var(--warn)}
+.tone.neutral{background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.outcome{align-self:stretch;display:grid;gap:6px;padding:12px 14px;margin-block:4px;border-radius:12px;background:var(--surface);border:1px dashed var(--line)}
+.outcome .oh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.impact{display:grid;gap:6px;padding:12px 14px;margin-top:14px;border-radius:12px;background:var(--surface);border:1px dashed var(--line)}
+.logitem{display:grid;gap:6px;padding:14px 0;border-bottom:1px solid var(--line)}
+.logitem .oh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.logitem time{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.logitem p{color:var(--muted);font-size:14px}
+
+.prof{padding-block:18px;border-bottom:1px solid var(--line);display:grid;gap:14px}
+.phead{display:flex;gap:16px;align-items:center}
+.pname{font-family:var(--font-display);font-size:22px;line-height:1.15;overflow-wrap:anywhere}
+.idtxt{min-width:0}
+.role{display:inline-block;margin-top:6px;padding:2px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
+.pbio{max-width:52ch}
+.bond{font-size:13px;color:var(--muted)}
+.bond b{color:var(--ink)}
+
+.idcard{margin-top:18px;background:var(--raised);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.idband{display:flex;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--ink);color:var(--bg);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.idbody{display:flex;gap:16px;align-items:center;padding:16px 14px 6px}
+.idbio{padding:6px 14px 0}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 14px 0;border:1px solid var(--line);border-radius:12px}
+.stats div{display:grid;gap:2px;padding:10px 4px;text-align:center}
+.stats div+div{border-left:1px solid var(--line)}
+.stats b{font-family:var(--font-display);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums;font-weight:400}
+.stats span{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.honor{display:grid;gap:6px;margin:16px 14px 0}
+.hrow{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hv{font-weight:700;font-variant-numeric:tabular-nums}
+.track{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--bad),var(--line) 50%,var(--good))}
+.track::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--bg);opacity:.9}
+.track .mark{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ink);border:3px solid var(--raised);box-shadow:0 0 0 1px var(--line)}
+.hends{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.idfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;margin-top:14px;border-top:1px dashed var(--line);font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+
+.setting{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.setting b{font-weight:600}
+.setting .fine{grid-column:1}
+.keyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.keyrow input{flex:1;min-width:160px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit}
+
+.setup{display:grid;gap:16px;padding-block:22px}
+.idpreview{display:flex;gap:14px;align-items:center}
+.field{display:grid;gap:6px}
+.field label,.field .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.field input,.field textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;resize:vertical}
+.chips2{display:flex;flex-wrap:wrap;gap:8px}
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.sw{--h:215;width:34px;height:34px;border-radius:50%;background:hsl(var(--h) 52% 38%);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--line)}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--accent)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:8;display:flex;gap:14px;align-items:center;max-width:min(520px,calc(100% - 32px));padding:10px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:14px}
+.toast button{font-weight:700;color:inherit;text-decoration:underline;flex:none}
+.toast .tc{display:inline-block;margin:2px 6px 0 0;font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.toast[hidden]{display:none!important}
+</style>
+<style>:root{--font-display:'Dela Gothic One',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}.brand,.h1,.pname,.stats b,.av{font-weight:800;font-synthesis:none}</style>
+
+<div class="shell" id="app">
+  <header class="top" id="top"></header>
+  <main id="main"></main>
+</div>
+<div class="bar" id="bar"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<input type="file" id="file-in" accept="image/*" hidden>
+
+<script>
+(function(){
+'use strict';
+
+/* In the claude.ai viewer, window.claude exists. In the installed app it does not. */
+const STANDALONE=!(window.claude&&window.claude.use);
+const AUTO_MS=300000;
+const KINDS=['fan','troll','rival','reporter','recruiter','cultist','shopkeeper','kid','conspiracy','scammer','neighbor','stranger'];
+
+/* ---------- Cast: original descriptions of each character's manner, no quoted dialogue ---------- */
+const CAST=[
+ {id:'makima',name:'Makima',handle:'makima_div4',ini:'MK',hue:6,role:'Public Safety · Division 4',
+  bio:'Division 4. Please send your reports before the end of the day.',
+  persona:'Calm, courteous head of Division 4. Soft-spoken and always faintly smiling. She never raises her voice and never quite answers the question you asked, yet seems to know more than she says. She treats people like valued pets or promising projects. Speaks in tidy, polite, complete sentences with a quiet, unsettling warmth.'},
+ {id:'denji',name:'Denji',handle:'denji_dev',ini:'DJ',hue:28,role:'Devil hunter · Division 4',
+  bio:'Hungry. Broke. Cheerful about it.',
+  persona:'Broke, hungry, impulsive teenage devil hunter who shares his body with a chainsaw devil. Wants a normal life: hot meals, a real bed, friends. Loud and goofy with crude-ish humor kept clean enough for PG-13, and a big heart. Types in casual lowercase with exaggerated excitement.'},
+ {id:'power',name:'Power',handle:'the_great_power',ini:'PW',hue:330,role:'Blood Fiend · Division 4',
+  bio:'The greatest hunter in Tokyo. This is a fact.',
+  persona:'A Blood Fiend who is certain she is the greatest hunter alive. Boastful, dramatic, a habitual liar, hates baths, adores cats. Talks about herself in grand terms and often in capital letters. Selfish on the surface, fiercely loyal to the few people she likes.'},
+ {id:'aki',name:'Aki Hayakawa',handle:'aki_hayakawa',ini:'AH',hue:215,role:'Devil hunter · Division 4',
+  bio:'Rules exist for a reason. Please read them.',
+  persona:'Disciplined, serious Public Safety hunter. Strict about rules and paperwork, permanently tired of Denji and Power, but looks after them like a stern older brother. Short, dry, to-the-point sentences. Cares more than he admits.'},
+ {id:'kobeni',name:'Kobeni Higashiyama',handle:'kobeni_h',ini:'KH',hue:160,role:'Devil hunter · Division 4',
+  bio:'Sorry. Sorry. I will try my best.',
+  persona:'Anxious, polite, easily frightened hunter who is terrified of her job but keeps showing up. Apologizes constantly, stammers, spirals, and is secretly an excellent dodger. Texts with many apologies and trailing ellipses.'},
+ {id:'himeno',name:'Himeno',handle:'himeno_off',ini:'HM',hue:285,role:'Veteran hunter · Division 4',
+  bio:'Off the clock whenever possible.',
+  persona:'Veteran hunter with a laid-back, cynical, teasing manner. Likes an after-shift drink, treats rookies like little siblings, and hides a lot of tiredness and wisdom behind jokes. Casual, dry, relaxed.'},
+ {id:'angel',name:'Angel Devil',handle:'angel_zzz',ini:'AD',hue:52,role:'Devil hunter · Division 4',
+  bio:'Napping. Please do not wake me.',
+  persona:'A gentle, sleepy devil working with Public Safety. Soft-spoken, lazy, avoids work, and takes naps seriously. Says kind things in a mild, faintly sad tone, and would rather not be asked to do anything.'},
+ {id:'kishibe',name:'Kishibe',handle:'kishibe_dojo',ini:'KS',hue:195,role:'Veteran hunter · Instructor',
+  bio:'Training starts at dawn. Do not be late.',
+  persona:'Veteran devil hunter and hard-nosed trainer. Gruff, scarred, blunt, short on patience, and secretly invested in his students. Dry sarcasm. Talks in terse orders and dog-training metaphors.'},
+ {id:'pochita',name:'Pochita',handle:'pochita_pk',ini:'PC',hue:40,role:'Chainsaw Devil',
+  bio:'Arf.',
+  persona:'A small chainsaw devil who cannot speak words. Replies are tiny sounds and *actions in asterisks* that convey simple feelings: affection, hunger, sleepiness, alarm. Very short. Warm and loyal.'},
+ {id:'yoshida',name:'Yoshida',handle:'yoshida_hh',ini:'YS',hue:120,role:'Devil hunter · Public Safety',
+  bio:'Easygoing. Usually has a plan.',
+  persona:'Easygoing, cheerful, slightly mysterious Public Safety hunter. Friendly and quick with a wry observation. Hard to read, and always seems to have a quiet plan. Relaxed, light, a little teasing.'}
+];
+CAST.forEach((c,i)=>{c.pat=i%6;});
+const byId=Object.fromEntries(CAST.map(c=>[c.id,c]));
+const ROLES=['Civilian','Rookie hunter','Private hunter','Public Safety staff'];
+const HUES=[4,28,52,150,190,215,265,320];
+const OPENERS=["Hey, how's your day going?","What's happening today?","I'm new in the city. Any advice?"];
+
+/* ---------- Built-in content, used offline and as filler. All original text. ---------- */
+const OFF_CAST_POSTS={
+ makima:["Division 4 will be short on desks this week. Please share, and please be kind to each other about it.","A reminder that rumors are best kept inside the building. It is so much tidier that way.","Good work today. I have read every report and I remember who wrote what."],
+ denji:["found a coin in my old jacket. dinner is NOT a metaphor today. dinner is real","someone said jam on toast is 'just breakfast'. it's an EVENT","tried to be mysterious today. forgot and told everyone my whole plan. oh well"],
+ power:["I, THE GREAT POWER, have inspected all the vending machines in the building. Three of them are clearly afraid of me.","A cat looked at me today. I looked back. I won. Do not ask for details.","Baths are a trick invented by enemies. That is just facts."],
+ aki:["Reminder: the shared fridge is not a personal storage unit. Label your food or lose it.","Reports are due at five. A coffee stain is not a signature.","Anyone who skipped yesterday's briefing: it was mandatory. It is still mandatory."],
+ kobeni:["sorry I'm late... I think I'm late... am I late? sorry","the elevator made a noise and I took the stairs and now I'm on the wrong floor. sorry to the wrong floor","I got through today without crying. only a little. okay maybe once"],
+ himeno:["off the clock in ten. my feet and I have an understanding","rookies, a tip: nobody ever regretted a lunch break","somebody put a plant on my desk. I'm keeping it. we're friends now"],
+ angel:["napping in shift two. do not summon me. thank you","the sun is warm. that is the entire update","someone asked me to help with paperwork. i simply smiled. it worked"],
+ kishibe:["Training at dawn. If you can read this, you are already late.","Good form beats good luck. Show up and learn which is which.","Complaints will be converted into push-ups at no extra charge."],
+ pochita:["*sits very still next to a warm radiator* arf.","*chases its own tail, then looks pleased about it* arf arf.","*falls asleep on a stack of reports*"],
+ yoshida:["new rule of the office: whoever takes the last biscuit leaves a note. I have notes. all of them are mine","the stray cat is back. it asked for nothing. respect","I have a plan for the afternoon. it involves a chair and a long lunch"]
+};
+const OFF_CAST_LINES={
+ makima:["That is lovely to hear. Please keep me posted.","I noticed that. I notice most things.","Thank you for telling me. I will remember it."],
+ denji:["whoa nice!! tell me more, is there food involved","ha okay okay I get it, kinda","I'd high five you if this was a real room"],
+ power:["Hmph. Acceptable. You may continue admiring me.","This is nothing compared to my feats. But go on.","I will allow it. Do not tell Aki."],
+ aki:["Understood. Please keep it brief next time.","That's fine. Just file it properly.","Be careful out there. That's all."],
+ kobeni:["oh... um, thank you? sorry, thank you","I'll try my best... sorry","that's really nice... I think. sorry"],
+ himeno:["heh, not bad","sure sure. buy me a drink and we'll talk","easy there, rookie"],
+ angel:["mm. that's nice. i'm going back to my nap","okay. thank you. please don't make it a big thing","i'll think about it after a rest"],
+ kishibe:["Fine. Don't let it go to your head.","Less talk, more training.","Hm. Not entirely wasted effort."],
+ pochita:["*tilts its head and leans against you* arf","*wags and offers a small, warm cough of sparks* arf!","*curls up next to you*"],
+ yoshida:["ha, I like that","interesting. I might use that","sure, why not. I'm easy"]
+};
+const OFF_STRANGERS=[
+ {name:'Mika from Shibuya',handle:'mika_shibu',kind:'fan',bio:'Division 4 fan page. Not affiliated.',posts:["Spotted a Division 4 jacket at the station and almost fainted. Totally normal behavior."],replies:["This is the best thing I've read all day!!","Okay I'm following you immediately.","Please never delete this."],dms:["hi!! I loved your post, can I ask you something?","you're my favorite account on here, no pressure"]},
+ {name:'Grumble Tom',handle:'grumble_tom',kind:'troll',bio:'Reviews everything with one star.',posts:["Public Safety is overrated and so is the breakfast at HQ. Fight me, I'll be asleep."],replies:["lol who asked","Mid. Try harder.","Bold of you to post this in public."],dms:["saw your post. embarrassing.","you really think people care about this?"]},
+ {name:'Daiki Ono',handle:'daiki_o',kind:'neighbor',bio:'Third floor. Noisy pipes.',posts:["Whoever keeps training at 5am above my apartment: I can hear everything. Please, a rug."],replies:["Could you do this more quietly? Thanks.","I saw you on the stairs earlier."],dms:["hey, it's your neighbor. got a minute?"]},
+ {name:'Night Bus Reporter',handle:'nightbus_news',kind:'reporter',bio:'Tips welcome. Please use the form.',posts:["Anyone in Division 4 willing to talk off the record? DMs open."],replies:["Interesting. Can I quote you?","Would you say that on the record?"],dms:["Quick question for a story I'm working on."]},
+ {name:'Haru',handle:'haru_hn',kind:'kid',bio:'12. Very serious about stickers.',posts:["found a sticker of a chainsaw. best day ever."],replies:["can I get a sticker","you're like a real hunter"],dms:["hi, are you the hunter from the posts?"]},
+ {name:'Mr. Ota',handle:'ota_pawn',kind:'shopkeeper',bio:'Pawn shop. Cash only.',posts:["Sale on lightly used equipment. Do not ask where the dent came from."],replies:["I have something that might interest you. Message me."],dms:["I have a proposal for you."]},
+ {name:'Line 9 Watcher',handle:'line9_ghost',kind:'conspiracy',bio:'They are watching the trains.',posts:["Line 9 skips a station every Tuesday. Ask yourself why."],replies:["That's exactly what they want you to say.","Interesting timing, isn't it?"],dms:["I know what you posted. We should talk somewhere safe."]},
+ {name:'Rena',handle:'rena_hunts',kind:'rival',bio:'Freelance hunter. Faster than you.',posts:["Training grounds, noon. Bring your best form."],replies:["Talk is cheap. Prove it.","Not bad. Not great either."],dms:["you've been busy online. let's see how you do in person."]}
+];
+const OFF_SCEN=[
+ {s:4,text:"hi... my cat Mochi ran off near the east exit of the station. you're a hunter right? can you help look for him? I can only pay in stickers",
+  options:[
+   {label:"Spend your evening searching with Haru",reaction:"really?? thank you!!",title:"You helped a kid",outcome:"It cost you the evening, but a worried kid stopped being alone.",honor:3,aura:3,followers:6,later:{delayMin:4,text:"Mochi was found asleep in a shoe box. Haru told everyone you helped.",post:"found Mochi!! he was asleep in a box the whole time. @{me} helped me look. best hunter ever",honor:1,aura:4,followers:14}},
+   {label:"Tell Haru to file a report with the station",reaction:"ok... i'll ask the station",title:"You passed the buck",outcome:"Sensible, but it felt cold. Haru went quiet.",honor:0,aura:-1,followers:-2,later:{delayMin:5,text:"Haru found Mochi alone and posted that nobody helped.",post:"found Mochi by myself. nobody wanted to help. fine.",honor:0,aura:-3,followers:-6}},
+   {label:"Say you'll help if Haru pays up",reaction:"i only have stickers...",title:"You haggled with a child",outcome:"Not a good look. A few people saw the message.",honor:-2,aura:2,followers:-8,later:{delayMin:3,text:"Someone screenshotted your message to Haru and it spread.",post:"imagine asking a 12 year old for money to look for a lost cat. just saying. @{me}",honor:-1,aura:-6,followers:-12}}]},
+ {s:3,text:"I'm writing about Public Safety's Division 4. Off the record: how bad are things inside? A good quote could make us both look great.",
+  options:[
+   {label:"Decline politely and point them to the press office",reaction:"Understood. Offer stands.",title:"You kept it professional",outcome:"Nothing to report. Division 4 notices you didn't talk.",honor:1,aura:0,followers:0,bond:{who:'aki',delta:1},later:{delayMin:6,text:"Aki heard you turned down the press and gave a short nod at your desk.",honor:1,aura:2,followers:0}},
+   {label:"Give them juicy gossip about Division 4",reaction:"Perfect. This is going to be good.",title:"You leaked gossip",outcome:"The article will make you look connected, and it will make colleagues angry.",honor:-3,aura:8,followers:30,bond:{who:'aki',delta:-2},later:{delayMin:6,by:'aki',text:"The article ran. Division 4 noticed who talked, and Aki was not pleased.",post:"The quote in last night's article came from inside Division 4. Whoever it was, we will talk. Calmly. For a long time.",honor:-2,aura:-8,followers:-15}},
+   {label:"Give a positive, on-the-record statement",reaction:"Great, I can use that.",title:"You spoke up for the team",outcome:"A tidy quote made you look steady and made the team look good.",honor:0,aura:4,followers:10,later:{delayMin:7,text:"The article ran with your quote. A few readers followed you.",post:"New piece out: Division 4 from the inside. One hunter's quote stood out. Worth a read.",honor:0,aura:3,followers:12}}]},
+ {s:5,text:"Cash for a favor. Tell me when the Division 4 patrol passes the north market and I'll make it worth it. No names.",
+  options:[
+   {label:"Report him to Public Safety",reaction:"You'll regret that.",title:"You did the right thing",outcome:"You gave Public Safety a lead, and you made an enemy.",honor:3,aura:4,followers:5,later:{delayMin:5,text:"Ota's friends found out who talked and started mocking you online.",post:"funny how some hunters can't mind their own business. everyone knows who you are, @{me}.",honor:0,aura:-3,followers:-10}},
+   {label:"Take the money and give him the route",reaction:"Pleasure doing business.",title:"You took the bribe",outcome:"Easy money now, and a thread someone will pull.",honor:-4,aura:-2,followers:0,later:{delayMin:6,text:"Public Safety noticed the pattern in the patrol leaks. There will be questions.",honor:-3,aura:-8,followers:-10}},
+   {label:"Play along, then stop replying",reaction:"...hello? Hello?",title:"You dodged both sides",outcome:"Nobody got hurt, nobody got helped. Ota is annoyed.",honor:-1,aura:2,followers:0,later:{delayMin:5,text:"Ota moved on to someone else, and the patrol route stayed quiet.",honor:0,aura:0,followers:0}}]},
+ {s:0,text:"OMG hi!! I run the Division 4 fan page. Could you post a shoutout for us? Even a short one would make my week.",
+  options:[
+   {label:"Post a friendly shoutout",reaction:"Thank you thank you!!",title:"You made a fan's week",outcome:"Small gesture, big smile. Her page lit up.",honor:1,aura:3,followers:15,later:{delayMin:3,text:"Mika's followers started finding your profile.",post:"@{me} posted a shoutout for us!! go follow them, they're really nice",honor:0,aura:4,followers:18}},
+   {label:"Ignore it",reaction:"Oh. Okay. Sorry to bother you.",title:"You left her on read",outcome:"Nothing dramatic. She just stopped being excited.",honor:0,aura:0,followers:-2},
+   {label:"Mock the fan page publicly",reaction:"That's really mean...",title:"You punched down",outcome:"A few people laughed, and a lot more disliked it.",honor:-2,aura:6,followers:20,later:{delayMin:4,text:"The backlash arrived. Mika's fans did not forget.",post:"imagine being mean to people who like you for free. @{me} really did that today.",honor:-1,aura:-9,followers:-25}}]},
+ {s:2,text:"Sorry to ask... can you lend me 5,000 yen until payday? My pipes burst and the plumber wants cash up front.",
+  options:[
+   {label:"Lend it",reaction:"You're a lifesaver. I'll pay you back.",title:"You lent a hand",outcome:"You're out some cash, and a neighbor owes you.",honor:2,aura:-1,followers:0,later:{delayMin:7,text:"Daiki paid you back with a little extra and told the building about it.",post:"paid back my neighbor @{me} today. there are good people on the third floor.",honor:1,aura:3,followers:10}},
+   {label:"Say no, politely",reaction:"No problem, I understand.",title:"You kept your money",outcome:"Fair, and nothing changed.",honor:0,aura:0,followers:0},
+   {label:"Tell him it sounds like a scam",reaction:"A scam?? It's a burst pipe!",title:"You accused a neighbor",outcome:"He wasn't lying. Now the whole hallway knows.",honor:-2,aura:-2,followers:-4,later:{delayMin:5,text:"The plumber really did come. Daiki mentioned your accusation to everyone.",post:"burst pipes are real. so is being accused of lying about them, apparently.",honor:-1,aura:-3,followers:-6}}]},
+ {s:7,text:"Heard you've been posting. Training grounds at noon tomorrow, friendly bout, winner gets bragging rights. Or are you scared?",
+  options:[
+   {label:"Accept the challenge",reaction:"Good. Don't be late.",title:"You took the challenge",outcome:"Brave, and risky. People will watch.",honor:1,aura:8,followers:20,later:{delayMin:8,text:"The bout was close. People kept talking about it.",post:"that was a real fight. respect to @{me}. rematch soon.",honor:1,aura:5,followers:15}},
+   {label:"Decline, you have paperwork",reaction:"Tch. Boring.",title:"You played it safe",outcome:"Nobody got hurt. A few people shrugged.",honor:0,aura:-3,followers:-3},
+   {label:"Trash-talk her in public",reaction:"Oh, it's on now.",title:"You started a feud",outcome:"Everyone is watching, and it's loud.",honor:-2,aura:7,followers:22,later:{delayMin:4,text:"Rena answered publicly, and her fans arrived.",post:"for the record: @{me} talks a lot. we'll see how much of it is true.",honor:0,aura:-4,followers:-8}}]}
+];
+
+/* ---------- State ---------- */
+let S=null;
+let AVS={};
+const ui={tab:'home',sub:null,stack:[],feed:'for',drafts:{},busy:{},errors:{},liveText:{},editing:false,confirmReset:false,
+  form:{name:'',handle:'',role:'Civilian',bio:'',hue:215,handleTouched:false},feedCtl:null,consented:false,autoPaused:false,sampleResolved:false,feedSource:'',keyMsg:''};
+let sampleObj=null;
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>esc(s).replace(/@([A-Za-z0-9_]{2,15})/g,'<span class="mention">@$1</span>');
+const ic=(d,s)=>{s=s||18;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';};
+const ICON={
+ reply:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+ repost:'<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+ like:'<path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.5 5c2 0 3.5 1.2 5.5 3.2C14 6.2 15.5 5 17.5 5 21 5 22.8 8.6 21.5 11.8 19.5 16.4 12 21 12 21z"/>',
+ send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+ back:'<path d="M15 18l-6-6 6-6"/>',
+ home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+ cast:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17.5 14c2.7 0 4.5 1.8 4.5 4.5"/>',
+ dm:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+ me:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 17c.6-2 2-3 3.5-3s2.9 1 3.5 3"/><path d="M15 9.5h4M15 13h4"/>'
+};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const cap=s=>String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1);
+function hash(s){let x=0;s=String(s);for(let i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))>>>0;return x;}
+function ini(n){const w=String(n||'').trim().split(/\s+/).filter(Boolean);if(!w.length)return '?';if(w.length===1)return w[0].slice(0,2).toUpperCase();return (w[0][0]+w[1][0]).toUpperCase();}
+function ago(t){const s=Math.max(0,(Date.now()-t)/1000);if(s<60)return 'now';const m=Math.floor(s/60);if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d';}
+function dateStr(t){try{return new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}catch(e){return '';}}
+function idNo(h){return 'HL-'+String(hash(h)%1000000).padStart(6,'0');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function clean(t,n){return String(t==null?'':t).replace(/\s+\n/g,'\n').trim().slice(0,n||280);}
+const num=(v,a,b)=>{v=Math.round(Number(v));return isFinite(v)?clamp(v,a,b):0;};
+function clampD(d){d=d||{};return {honor:num(d.honor,-4,4),aura:num(d.aura,-15,15),followers:num(d.followers,-60,60),bond:num(d.bond,-2,2)};}
+const sign=v=>(v>0?'+':'−')+Math.abs(v);
+
+function actor(by){
+  if(by==='me'){const m=S?S.me:ui.form;return {id:'me',name:m.name||'You',handle:m.handle||'you',hue:m.hue||215,ini:ini(m.name||'You'),pat:hash(m.handle||'me')%6,role:m.role||'',bio:m.bio||'',cast:false};}
+  const c=byId[by];
+  if(c)return {id:c.id,name:c.name,handle:c.handle,hue:c.hue,ini:c.ini,pat:c.pat,role:c.role,bio:c.bio,cast:true};
+  const n=S&&S.npcs[by];
+  if(n)return {id:n.id,name:n.name,handle:n.handle,hue:n.hue,ini:ini(n.name),pat:hash(n.id)%6,role:cap(n.kind),bio:n.bio,cast:false,npc:true,kind:n.kind};
+  return {id:by,name:'Someone',handle:'unknown',hue:215,ini:'?',pat:0,role:'',bio:'',cast:false};
+}
+const nameOf=by=>actor(by).name;
+const handleOf=by=>actor(by).handle;
+function avRaw(img,text,hue,pat,size,idAttr){
+  const cls='av'+(size?' '+size:'');
+  if(img)return '<span'+(idAttr?' id="'+idAttr+'"':'')+' class="'+cls+' has-img"><img src="'+esc(img)+'" alt=""></span>';
+  return '<span'+(idAttr?' id="'+idAttr+'"':'')+' class="'+cls+' p'+pat+'" style="--h:'+hue+'">'+esc(text)+'</span>';
+}
+function av(by,size){const a=actor(by);return avRaw(AVS[by],a.ini,a.hue,a.pat,size);}
+const getPost=id=>S.posts.find(p=>p.id===id);
+const lastT=th=>th&&th.length?th[th.length-1].t:0;
+
+/* standing */
+function tier(h){return h<=-60?'Notorious':h<=-20?'Shady':h<20?'Neutral':h<60?'Respected':'Honorable';}
+function bondLabel(b){return b<=-6?'Hostile':b<=-2?'Wary':b<2?'Neutral':b<6?'Friendly':'Loyal';}
+const standing=()=>tier(S.stats.honor)+' (honor '+S.stats.honor+'), '+S.stats.followers+' followers, aura '+S.stats.aura;
+function toneOf(a,bond){
+  const gain=(a.aura||0)+(a.followers||0)/4;
+  if(a.honor>0&&gain>=0)return 'good';
+  if(a.honor<0&&gain<=0)return 'bad';
+  if(a.honor===0){if(gain>0)return 'good';if(gain<0)return 'bad';return bond>0?'good':bond<0?'bad':'neutral';}
+  return 'mixed';
+}
+const TONE_LABEL={good:'Good',bad:'Bad',mixed:'Mixed',neutral:'Noted'};
+function chipsHTML(d,bondNote){
+  const mk=(label,v)=>v?'<span class="d '+(v>0?'up':'down')+'">'+(v>0?'▲':'▼')+' '+label+' '+sign(v)+'</span>':'';
+  let h=mk('Honor',d.honor)+mk('Aura',d.aura)+mk('Followers',d.followers);
+  if(bondNote)h+=mk('Bond · '+nameOf(bondNote.who),bondNote.delta);
+  return h?'<div class="chips">'+h+'</div>':'';
+}
+
+/* ---------- Seed ---------- */
+function newState(me){
+  const now=Date.now(),m=60000;
+  const rows=[
+   ['makima',4,'Thank you for your work this week, everyone. Please get some rest. I will be reading the reports tonight, so I trust they are thorough.',212],
+   ['denji',11,'day 4 of toast with jam. day 4 of being thrilled about toast with jam. we are WINNING',508],
+   ['power',26,'I, THE GREAT POWER, have defeated the vending machine that swallowed my coins. It is afraid of me now. You are welcome, Tokyo.',341],
+   ['aki',38,"Reminder: last week's mission reports are due by five. All of them. A drawing of a devil in the margin is not a field sketch.",264],
+   ['kobeni',55,"sorry sorry sorry the train was cancelled and then I ran and then there was a bird... I'm at my desk now. I'm so sorry",133],
+   ['himeno',83,"post-shift drinks tonight. rookies are buying. that's how the economy works",189],
+   ['angel',120,"found a good napping spot behind the supply closet. no one tell anyone. i'll know if you tell anyone.",76],
+   ['kishibe',170,'Dawn training tomorrow. Late means laps. Complaining means more laps.',97],
+   ['pochita',240,'*curls up in a jacket pocket* arf.',902],
+   ['yoshida',300,'a stray cat has attended three meetings at HQ today. contributions so far: better than average.',158]
+  ];
+  return migrate({me:me,joined:now,savedAt:now,follows:['makima','denji','power','aki'],
+    posts:rows.map((r,i)=>({id:'s'+i,by:r[0],text:r[2],t:now-r[1]*m,likes:r[3],reposts:Math.round(r[3]/9),liked:false,reposted:false,replies:[]}))});
+}
+function migrate(s){
+  s.v=2;s.npcs=s.npcs||{};s.stats=s.stats||{honor:0,aura:10,followers:8};s.bond=s.bond||{};s.requests=s.requests||{};
+  s.pending=s.pending||[];s.log=s.log||[];s.used=s.used||[];s.dms=s.dms||{};s.unread=s.unread||{};s.follows=s.follows||[];
+  if(s.auto===undefined)s.auto=true;
+  if(!s.lastRefresh)s.lastRefresh=Date.now();
+  s.carry=s.carry||0;s.lastRequest=s.lastRequest||0;
+  return s;
+}
+
+/* ---------- Persistence: this device always, plus a private copy in your claude.ai account when available ---------- */
+const LS_KEY='hunterline.v1',LS_AV='hunterline.avatars.v1',LS_KEYAPI='hunterline.key',LS_THEME='hunterline.theme';
+let dbGame=null,dbDms=null,dbAv=null,dbReadOnly=false,saving=false,saveTimer=null,lastW={game:'',dms:'',av:''};
+const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+const lsDel=k=>{try{localStorage.removeItem(k);}catch(e){}};
+const lsRead=k=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}};
+function trim(){
+  S.posts=S.posts.slice(0,30);
+  S.posts.forEach(p=>{p.replies=p.replies.slice(-10);if(p.impacts)p.impacts=p.impacts.slice(-4);});
+  Object.keys(S.dms).forEach(k=>{S.dms[k]=S.dms[k].slice(-24);});
+  Object.keys(S.dms).filter(k=>!byId[k]).sort((a,b)=>lastT(S.dms[b])-lastT(S.dms[a])).slice(10).forEach(k=>{delete S.dms[k];delete S.unread[k];});
+  S.log=S.log.slice(0,40);
+  const live=new Set();Object.values(S.dms).forEach(th=>th.forEach(m=>{if(m.req)live.add(m.req);}));
+  Object.keys(S.requests).forEach(r=>{if(!live.has(r))delete S.requests[r];});
+  const used=new Set();S.posts.forEach(p=>{used.add(p.by);p.replies.forEach(r=>used.add(r.by));});
+  Object.keys(S.dms).forEach(k=>used.add(k));S.pending.forEach(p=>used.add(p.npc));
+  Object.keys(S.npcs).forEach(k=>{if(!used.has(k))delete S.npcs[k];});
+  S.used=S.used.slice(-120);
+}
+function persist(){
+  if(!S)return;
+  trim();S.savedAt=Date.now();lsSet(LS_KEY,JSON.stringify(S));
+  clearTimeout(saveTimer);saveTimer=setTimeout(flush,1200);
+}
+function persistAv(){lsSet(LS_AV,JSON.stringify(AVS));clearTimeout(saveTimer);saveTimer=setTimeout(flush,1200);}
+function gameState(){const g=Object.assign({},S);delete g.dms;return g;}
+async function flush(){
+  if(!dbGame||dbReadOnly)return;
+  if(saving){saveTimer=setTimeout(flush,800);return;}
+  saving=true;
+  try{
+    if(S){
+      const g=JSON.stringify(gameState());if(g!==lastW.game){await dbGame.set({state:JSON.parse(g)});lastW.game=g;}
+      const d=JSON.stringify(S.dms);if(d!==lastW.dms){await dbDms.set({dms:S.dms});lastW.dms=d;}
+    }
+    const a=JSON.stringify(AVS);if(a!==lastW.av){await dbAv.set({avatars:AVS});lastW.av=a;}
+  }catch(e){if(e&&e.code==='invalid_argument'&&/write|permission|exist/i.test(e.message||''))dbReadOnly=true;}
+  finally{saving=false;}
+}
+async function initDb(){
+  try{
+    if(STANDALONE)return;
+    const user=await window.claude.use('user');
+    const db=await window.claude.use('db');
+    if(!user||!db)return;
+    const id=await user.id();
+    if(!id)return;
+    const base='data/users/'+id;
+    dbGame=db.doc(base+'/game');dbDms=db.doc(base+'/dms');dbAv=db.doc(base+'/avatars');
+    const r=await Promise.all([dbGame.get(),dbDms.get(),dbAv.get()]);
+    const rg=r[0].exists&&r[0].data()&&r[0].data().state;
+    const rd=r[1].exists&&r[1].data()&&r[1].data().dms;
+    const ra=r[2].exists&&r[2].data()&&r[2].data().avatars;
+    if(ra&&typeof ra==='object'){AVS=Object.assign({},ra,AVS);lsSet(LS_AV,JSON.stringify(AVS));}
+    if(rg&&rg.me&&(!S||(rg.savedAt||0)>(S.savedAt||0))){
+      S=migrate(rg);S.dms=rd||rg.dms||{};
+      lsSet(LS_KEY,JSON.stringify(S));renderAll();
+    }
+    if(S||Object.keys(AVS).length)flush();
+  }catch(e){dbGame=dbDms=dbAv=null;}
+}
+
+/* ---------- AI layer: Claude on claude.ai, your own API key in the installed app, built-in lines otherwise ---------- */
+const samplePromise=STANDALONE?Promise.resolve(null):window.claude.use('sample');
+samplePromise.then(s=>{sampleObj=s;ui.sampleResolved=true;if(S)render();}).catch(()=>{ui.sampleResolved=true;});
+const apiKey=()=>lsGet(LS_KEYAPI)||'';
+function mode(){
+  if(STANDALONE)return apiKey()?'key':'offline';
+  if(sampleObj)return 'claude';
+  return ui.sampleResolved?'offline':'claude';
+}
+const MODE_LABEL={claude:'Claude (through claude.ai)',key:'Your API key',offline:'Built-in stories (offline)'};
+function errCopy(code){
+  switch(code){
+    case 'not_granted':return 'Claude access was declined for this page, so characters cannot reply right now.';
+    case 'sampling_disabled':return "Claude isn't available on this account, so characters cannot reply.";
+    case 'unavailable':case 'capability_disabled':case 'capability_removed':case 'not_declared':return "Character replies aren't available in this view.";
+    case 'rate_limited':return 'Too many replies at once. Wait a moment, then try again.';
+    case 'session_expired':return 'Sign in to Claude again, then try again.';
+    case 'refused':return "That one didn't go through. Try different wording.";
+    case 'invalid_json':case 'empty_completion':return 'The reply came back unreadable. Try again.';
+    case 'bad_key':return 'That API key was rejected. Check it on the Me tab under Settings.';
+    default:return "The reply didn't come through. Try again.";
+  }
+}
+function parseJsonLoose(t){
+  t=String(t||'').trim();
+  try{return JSON.parse(t);}catch(e){}
+  const f=t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(f){try{return JSON.parse(f[1]);}catch(e){}}
+  const a=t.search(/[\[{]/),b=Math.max(t.lastIndexOf('}'),t.lastIndexOf(']'));
+  if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}
+  throw {code:'invalid_json'};
+}
+function normTurns(turns){
+  const out=[];
+  turns.forEach(t=>{if(!t||!t.content)return;if(out.length&&out[out.length-1].role===t.role)out[out.length-1].content+='\n\n'+t.content;else out.push({role:t.role,content:t.content});});
+  while(out.length&&out[0].role!=='user')out.shift();
+  return out;
+}
+async function apiCall({system,turns,tier,signal,max}){
+  if(!navigator.onLine)throw {code:'offline'};
+  const key=apiKey();if(!key)throw {code:'offline'};
+  let res;
+  try{
+    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:signal,
+      headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:tier==='quick'?'claude-haiku-5-5':'claude-sonnet-5-5',max_tokens:max||1024,system:system||undefined,messages:normTurns(turns)})});
+  }catch(e){
+    if(e&&e.name==='AbortError')throw {code:'cancelled'};
+    throw {code:'offline'};
+  }
+  if(!res.ok){
+    if(res.status===401||res.status===403)throw {code:'bad_key'};
+    if(res.status===429)throw {code:'rate_limited'};
+    throw {code:'upstream_error'};
+  }
+  const data=await res.json();
+  const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  if(!text.trim())throw {code:'empty_completion'};
+  return text;
+}
+async function aiText({system,turns,tier,signal,onText}){
+  const m=mode();
+  if(m==='claude'){
+    const s=await samplePromise;if(!s)throw {code:'unavailable'};
+    const input=system?[{role:'user',content:system}].concat(turns):turns;
+    const r=await s(input,{modelTier:tier||'quick',cache:false,signal:signal,onText:onText});
+    ui.consented=true;return r.text;
+  }
+  if(m==='key'){const t=await apiCall({system,turns,tier,signal});if(onText)onText({text:t,delta:t});return t;}
+  throw {code:'offline'};
+}
+async function aiJson(prompt,{tier,signal}){
+  const m=mode();
+  if(m==='claude'){
+    const s=await samplePromise;if(!s)throw {code:'unavailable'};
+    const v=await s.json(prompt,{modelTier:tier||'default',cache:false,signal:signal});
+    ui.consented=true;return v;
+  }
+  if(m==='key'){
+    const t=await apiCall({system:'You reply with only valid JSON, no prose and no code fences.',turns:[{role:'user',content:prompt}],tier,signal,max:2600});
+    return parseJsonLoose(t);
+  }
+  throw {code:'offline'};
+}
+
+/* ---------- Prompts ---------- */
+function worldBrief(){
+  return "Hunterline is a fictional social network used by devil hunters in Tokyo, set in the world of Chainsaw Man early in the timeline: Division 4 of the Public Safety Devil Hunters is active, everyone is alive, and daily life mixes ordinary chores (rent, food, trains, paperwork) with devil sightings. Write new, original lines in each character's voice and never quote the manga or anime. Keep everything PG-13: no sexual or romantic content and no graphic gore.";
+}
+const STRANGER_RULES="Strangers are ordinary accounts in this world and can write whatever fits them: kind, rude, nosy, funny, strange, spammy, or menacing in the way a PG-13 show would allow. No slurs or hate toward real groups, no sexual content, no graphic gore, no real people. Strangers never ask for real-world personal information, passwords or payment details.";
+const castBrief=()=>CAST.map(c=>'- '+c.id+' ('+c.name+', '+c.role+'): '+c.persona).join('\n');
+const meBrief=()=>'The player is '+S.me.name+' (@'+S.me.handle+'), a '+S.me.role.toLowerCase()+' in this world.'+(S.me.bio?' Their bio: "'+S.me.bio+'".':'')+' Standing: '+standing()+'.';
+const IMPACT_SPEC='"impact":{"honor":0,"aura":0,"followers":0,"title":"","why":""} judging only the player\'s latest message: honor -4 to 4 (kind, honest, brave goes up; cruel, deceitful, cowardly goes down), aura -12 to 12 (bold, funny, impressive goes up; embarrassing goes down), followers -40 to 40, title at most 40 characters, why one short sentence. Use 0 for neutral messages.';
+const DM_SPEC='dms: exactly 1 item, a stranger (existing id or new) who messages the player with a request, offer, warning or favor that fits their kind. Format {"who":"stranger","id":"existing id or omit","name":"...","handle":"...","kind":"...","bio":"...","wants":"what they want, one short phrase","text":"opening message, at most 280 characters","options":[3 items]}. Each option is {"label":"the player\'s choice, at most 60 characters","reaction":"what the stranger texts back, at most 160 characters","title":"consequence headline, at most 40 characters","outcome":"the immediate consequence, at most 140 characters","honor":-4 to 4,"aura":-12 to 12,"followers":-40 to 40,"later":{"delayMin":2 to 15,"text":"a delayed consequence, at most 160 characters","post":"optional public post the stranger writes later, at most 200 characters, write @{me} where the player is mentioned","honor":0,"aura":0,"followers":0}}. The 3 options must be honest trade-offs: good deeds can cost something now, bad choices can pay off now and cost later. Never make the best option obvious.';
+
+function normActor(x){
+  if(!x||typeof x!=='object')return null;
+  if(x.who==='cast'||(!x.who&&byId[x.id]))return byId[x.id]?x.id:null;
+  if(byId[x.id])return x.id;
+  if(x.id&&S.npcs[x.id])return x.id;
+  if(!(x.name||x.handle))return null;
+  return ensureNpc(x);
+}
+function ensureNpc(x){
+  const name=clean(x.name,28)||'Anonymous';
+  let handle=String(x.handle||name).toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,15)||('user'+rnd(100,999));
+  const ex=Object.values(S.npcs).find(n=>n.handle===handle);
+  if(ex)return ex.id;
+  if(handle===S.me.handle||CAST.some(c=>c.handle===handle))handle=handle.slice(0,11)+rnd(100,999);
+  const id='n_'+uid();
+  S.npcs[id]={id:id,name:name,handle:handle,kind:KINDS.indexOf(x.kind)>=0?x.kind:'stranger',bio:clean(x.bio,90),wants:clean(x.wants,120),hue:rnd(0,359)};
+  return id;
+}
+function pickItems(arr,max){
+  if(!Array.isArray(arr))return [];
+  const out=[];
+  arr.slice(0,max).forEach(x=>{const by=normActor(x);const text=clean(x&&x.text,280);if(by&&text)out.push({by:by,text:text});});
+  return out;
+}
+const openReqCount=()=>Object.values(S.requests).filter(r=>r.status==='open').length;
+
+function addRequest(x){
+  if(!x||typeof x!=='object')return null;
+  const text=clean(x.text,300);
+  const opts=(Array.isArray(x.options)?x.options:[]).slice(0,3).map((o,i)=>{
+    const l=o&&o.later&&o.later.text?o.later:null;
+    const b=o&&o.bond&&byId[o.bond.who]?{who:o.bond.who,delta:num(o.bond.delta,-2,2)}:null;
+    return {id:'o'+i,label:clean(o&&o.label,70),reaction:clean(o&&o.reaction,180),title:clean(o&&o.title,44),outcome:clean(o&&o.outcome,160),
+      honor:num(o&&o.honor,-4,4),aura:num(o&&o.aura,-15,15),followers:num(o&&o.followers,-60,60),bond:b,
+      later:l?{delayMin:num(l.delayMin||5,1,30),text:clean(l.text,180),post:clean(l.post,220),by:byId[l.by]?l.by:'',honor:num(l.honor,-4,4),aura:num(l.aura,-15,15),followers:num(l.followers,-60,60)}:null};
+  }).filter(o=>o.label);
+  if(!text||opts.length<2)return null;
+  const npcId=normActor(Object.assign({},x,{who:'stranger'}));
+  if(!npcId||byId[npcId])return null;
+  const rid='r_'+uid();
+  S.requests[rid]={id:rid,npc:npcId,t:Date.now(),status:'open',options:opts};
+  (S.dms[npcId]=S.dms[npcId]||[]).push({from:npcId,text:text,t:Date.now(),req:rid});
+  S.unread[npcId]=true;S.lastRequest=Date.now();
+  return npcId;
+}
+
+/* ---------- Built-in generators ---------- */
+function unused(arr,keyFn){
+  const left=arr.filter(x=>S.used.indexOf(keyFn(x))<0);
+  if(!left.length){S.used=S.used.filter(u=>!arr.some(x=>keyFn(x)===u));return arr.slice();}
+  return left;
+}
+function offlineFeed(){
+  const posts=[];
+  const castLines=[];
+  Object.keys(OFF_CAST_POSTS).forEach(id=>OFF_CAST_POSTS[id].forEach(t=>castLines.push({id:id,text:t})));
+  const cs=unused(castLines,x=>x.text).sort(()=>Math.random()-.5);
+  const seen={};
+  cs.forEach(x=>{if(posts.length<3&&!seen[x.id]){seen[x.id]=1;posts.push({who:'cast',id:x.id,text:x.text});S.used.push(x.text);}});
+  const sp=OFF_STRANGERS.slice().sort(()=>Math.random()-.5);
+  let n=0;
+  sp.forEach(s=>{
+    if(n>=2)return;
+    const left=s.posts.filter(t=>S.used.indexOf(t)<0);
+    if(!left.length)return;
+    n++;S.used.push(left[0]);
+    posts.push({who:'stranger',name:s.name,handle:s.handle,kind:s.kind,bio:s.bio,text:left[0]});
+  });
+  const dms=[];
+  if(openReqCount()<2&&Date.now()-(S.lastRequest||0)>8*60000&&Math.random()<0.75){
+    const sc=unused(OFF_SCEN,x=>x.text)[0];
+    if(sc){
+      const st=OFF_STRANGERS[sc.s];S.used.push(sc.text);
+      dms.push({who:'stranger',name:st.name,handle:st.handle,kind:st.kind,bio:st.bio,text:sc.text,options:sc.options});
+    }
+  }
+  return {posts:posts,dms:dms};
+}
+function lastMine(p){
+  const r=p.replies.filter(x=>x.by==='me');
+  return r.length?r[r.length-1].text:(p.by==='me'?p.text:'');
+}
+function localImpact(text){
+  const t=String(text||'').toLowerCase();let h=0,a=0,f=0;
+  if(/(thank|please|sorry|help|proud|congrat|appreciate|kind|friend|welcome)/.test(t)){h+=1;f+=3;}
+  if(/(idiot|stupid|shut up|hate|loser|ugly|dumb|trash|pathetic|useless)/.test(t)){h-=2;a+=2;f-=4;}
+  if(/(lie|steal|cheat|bribe|betray|snitch|rumou?r|gossip)/.test(t)){h-=1;a+=1;}
+  if(t.length>140)a+=1;
+  const tn=toneOf({honor:h,aura:a,followers:f},0);
+  if(!h&&!a&&!f)return {honor:0,aura:0,followers:0};
+  const title=tn==='good'?'Kind words travel':tn==='bad'?'That stung':'Mixed reaction';
+  const why=tn==='good'?'People liked how you put that.':tn==='bad'?'Not everyone took that well.':'Some people cheered, others winced.';
+  return {honor:h,aura:a,followers:f,title:title,why:why};
+}
+function offlineReplies(p){
+  const items=[];
+  const strangers=OFF_STRANGERS.slice().sort(()=>Math.random()-.5).slice(0,2);
+  if(p.by==='me'){
+    const casts=CAST.slice().sort(()=>Math.random()-.5).slice(0,2);
+    casts.forEach(c=>items.push({who:'cast',id:c.id,text:pick(OFF_CAST_LINES[c.id])}));
+  }else{
+    items.push({who:'cast',id:p.by,text:pick(OFF_CAST_LINES[p.by]||["Noted."])});
+  }
+  strangers.forEach(s=>items.push({who:'stranger',name:s.name,handle:s.handle,kind:s.kind,bio:s.bio,text:pick(s.replies)}));
+  return {replies:items,impact:localImpact(lastMine(p))};
+}
+function offlineDM(id,text){
+  const a=actor(id);
+  let line;
+  if(a.cast)line=pick(OFF_CAST_LINES[id]);
+  else{const st=OFF_STRANGERS.find(s=>s.kind===a.kind);line=pick(st?st.replies.concat(st.dms):["Okay. I'll think about it.","Fair enough.","Noted."]);}
+  const imp=localImpact(text);
+  imp.bond=imp.honor>0?1:imp.honor<0?-1:0;
+  return {text:line,imp:imp};
+}
+
+/* ---------- Consequences ---------- */
+function applyImpact(d,meta){
+  meta=meta||{};
+  d=clampD(d);
+  const st=S.stats,b=Object.assign({},st);
+  st.honor=clamp(st.honor+d.honor,-100,100);
+  st.aura=Math.max(0,st.aura+d.aura);
+  st.followers=Math.max(0,st.followers+d.followers);
+  const act={honor:st.honor-b.honor,aura:st.aura-b.aura,followers:st.followers-b.followers};
+  let bondNote=null;
+  if(d.bond&&meta.bondWho&&byId[meta.bondWho]){
+    const nb=clamp((S.bond[meta.bondWho]||0)+d.bond,-10,10);
+    if(nb!==(S.bond[meta.bondWho]||0)){bondNote={who:meta.bondWho,delta:nb-(S.bond[meta.bondWho]||0)};S.bond[meta.bondWho]=nb;}
+  }
+  const tone=toneOf(act,bondNote?bondNote.delta:0);
+  const notable=meta.force||Math.abs(act.honor)>=1||Math.abs(act.aura)>=3||Math.abs(act.followers)>=5||bondNote;
+  const title=meta.title||(tone==='good'?'That went over well':tone==='bad'?"That didn't go over well":'Mixed reaction');
+  if(notable){
+    S.log.unshift({id:uid(),t:Date.now(),tone:tone,title:title,text:meta.text||'',d:act,bond:bondNote});
+    S.log=S.log.slice(0,40);
+    consequenceToast(title,act,bondNote);
+  }
+  return {act:act,bond:bondNote,tone:tone,title:title,notable:!!notable};
+}
+function consequenceToast(title,d,bondNote){
+  let c='';
+  const mk=(l,v)=>v?'<span class="tc">'+(v>0?'▲':'▼')+' '+l+' '+sign(v)+'</span>':'';
+  c=mk('Honor',d.honor)+mk('Aura',d.aura)+mk('Followers',d.followers);
+  if(bondNote)c+=mk('Bond · '+nameOf(bondNote.who),bondNote.delta);
+  toastHTML('<span><b>'+esc(title)+'</b><br>'+c+'</span><button data-act="goto-me">View</button>');
+}
+function engage(){
+  const now=Date.now();let add=0;
+  S.posts.forEach(p=>{
+    if(p.by!=='me'||now-p.t>86400000)return;
+    const a=rnd(0,Math.max(1,Math.ceil(S.stats.followers/18)));
+    if(a){p.likes+=a;add+=a;if(Math.random()<0.35)p.reposts+=1;}
+  });
+  S.carry=(S.carry||0)+add;
+  const au=Math.floor(S.carry/5);S.carry-=au*5;S.stats.aura+=au;
+  S.stats.followers+=Math.round(add/6)+(add>0&&Math.random()<0.4?1:0);
+}
+function processPending(){
+  if(!S||!S.pending.length)return;
+  const now=Date.now();
+  const due=S.pending.filter(p=>p.due<=now);
+  if(!due.length)return;
+  S.pending=S.pending.filter(p=>p.due>now);
+  due.forEach(p=>{
+    const text=p.text.replace(/\{me\}/g,S.me.handle);
+    if(p.post){
+      S.posts.unshift({id:uid(),by:p.by||p.npc,text:clean(p.post.replace(/\{me\}/g,S.me.handle),280),t:now,likes:rnd(3,80),reposts:rnd(0,9),liked:false,reposted:false,replies:[]});
+    }
+    applyImpact(p.d,{title:p.title,text:text,force:true});
+  });
+  persist();render();
+}
+function choose(reqId,optId){
+  const r=S.requests[reqId];if(!r||r.status!=='open')return;
+  const o=r.options.find(x=>x.id===optId);if(!o)return;
+  r.status='done';r.choice=optId;
+  const th=S.dms[r.npc]||(S.dms[r.npc]=[]);
+  const now=Date.now();
+  th.push({from:'me',text:o.label,t:now});
+  const d={honor:o.honor,aura:o.aura,followers:o.followers,bond:o.bond?o.bond.delta:0};
+  const res=applyImpact(d,{title:o.title||'Your choice',text:o.outcome,force:true,bondWho:o.bond?o.bond.who:null});
+  th.push({from:'sys',kind:'outcome',title:o.title||'Your choice',text:o.outcome,d:res.act,bond:res.bond,tone:res.tone,t:now+1});
+  if(o.reaction)th.push({from:r.npc,text:o.reaction,t:now+2});
+  if(o.later&&o.later.text){
+    S.pending.push({id:uid(),due:now+clamp(o.later.delayMin||5,1,30)*60000,npc:r.npc,by:o.later.by||'',text:o.later.text,post:o.later.post||'',
+      d:{honor:o.later.honor,aura:o.later.aura,followers:o.later.followers},title:'Later: '+(o.title||'your choice')});
+  }
+  persist();render();scrollEnd();
+}
+
+/* ---------- Feed ---------- */
+async function aiFeed(signal){
+  const wantDM=openReqCount()<2&&Date.now()-(S.lastRequest||0)>8*60000;
+  const recent=S.posts.slice(0,8).map(p=>'- '+nameOf(p.by)+': '+p.text).join('\n');
+  const known=Object.values(S.npcs).slice(0,12).map(n=>'- '+n.id+': '+n.name+' (@'+n.handle+', '+n.kind+')').join('\n')||'(none yet)';
+  const prompt=[worldBrief(),STRANGER_RULES,'','Cast:',castBrief(),'',meBrief(),'','Posts already on the feed (do not repeat their ideas):',recent,'',
+    'Known stranger accounts (reuse by "id" or introduce new ones):',known,'',
+    'Return one JSON object {"posts":[...],"dms":[...]}.',
+    'posts: 7 items, 4 or 5 from cast members and 2 or 3 from strangers. Cast item: {"who":"cast","id":"denji","text":"..."}. Stranger item: {"who":"stranger","id":"existing id or omit","name":"...","handle":"letters digits underscore","kind":"fan|troll|rival|reporter|recruiter|cultist|shopkeeper|kid|conspiracy|scammer|neighbor","bio":"at most 80 characters","text":"..."}. Each text is at most 240 characters. At most one post may mention the player by @handle.',
+    wantDM?DM_SPEC:'dms: an empty array.'].join('\n');
+  const v=await aiJson(prompt,{tier:'default',signal:signal});
+  return Array.isArray(v)?{posts:v,dms:[]}:v;
+}
+function addFeed(res){
+  const now=Date.now();
+  const known=new Set(S.posts.map(p=>p.text));
+  const fresh=[];
+  (res.posts||[]).slice(0,8).forEach(x=>{
+    const by=normActor(x);const text=clean(x&&x.text,280);
+    if(!by||!text||known.has(text))return;
+    const likes=rnd(4,320);
+    fresh.push({id:uid(),by:by,text:text,t:now-rnd(0,25)*60000,likes:likes,reposts:Math.round(likes/9),liked:false,reposted:false,replies:[]});
+  });
+  S.posts=fresh.concat(S.posts).sort((a,b)=>b.t-a.t);
+  (res.dms||[]).slice(0,1).forEach(x=>{
+    if(openReqCount()>=3)return;
+    const id=addRequest(x);
+    if(id)toast(actor(id).name+' sent you a message','chat',id);
+  });
+}
+async function refreshFeed(opts){
+  opts=opts||{};
+  if(ui.busy.feed||!S)return;
+  S.lastRefresh=Date.now();
+  ui.busy.feed=true;delete ui.errors.feed;ui.feedCtl=new AbortController();
+  if(!opts.auto)ui.autoPaused=false;
+  render();
+  try{
+    let res=null;ui.feedSource='offline';
+    const useAI=mode()!=='offline'&&!(opts.auto&&mode()==='claude'&&!ui.consented);
+    if(useAI){
+      try{res=await aiFeed(ui.feedCtl.signal);ui.feedSource='ai';}
+      catch(e){if(!e||e.code!=='offline')throw e;res=null;}
+    }
+    if(!res)res=offlineFeed();
+    addFeed(res);engage();processPending();
+    persist();
+  }catch(e){
+    if(!e||e.code!=='cancelled'){ui.errors.feed=(e&&e.code)||'upstream_error';if(opts.auto)ui.autoPaused=true;}
+  }finally{ui.busy.feed=false;ui.feedCtl=null;render();}
+}
+
+/* ---------- Replies on posts ---------- */
+async function aiReplies(p){
+  const mine=p.by==='me';
+  const lastR=p.replies[p.replies.length-1];
+  const follow=!!(lastR&&lastR.by==='me');
+  const thread=p.replies.slice(-8).map(r=>nameOf(r.by)+': '+r.text).join('\n');
+  const known=Object.values(S.npcs).slice(0,10).map(n=>'- '+n.id+': '+n.name+' (@'+n.handle+', '+n.kind+')').join('\n')||'(none yet)';
+  const L=[worldBrief(),STRANGER_RULES,'','Cast:',castBrief(),'',meBrief(),'','Known stranger accounts (reuse by "id" or introduce new ones):',known,''];
+  L.push(mine?'The player posted publicly: "'+p.text+'"':nameOf(p.by)+' ('+p.by+') posted: "'+p.text+'"');
+  if(thread)L.push('Replies so far:',thread);
+  if(mine&&!follow)L.push('Write 3 or 4 public replies: 1 or 2 from cast members who would most naturally respond and at least 2 from strangers, who can say anything that fits them.');
+  else if(mine)L.push("Write 2 or 3 replies to the player's latest reply, from people already in the thread or ones who would chime in, including at least one stranger.");
+  else L.push("Write 3 replies: the first from "+nameOf(p.by)+" ("+p.by+") answering the player's latest reply directly, the others from a stranger and one more cast member who would chime in.");
+  L.push('Each reply is at most 200 characters. Never write lines for the player.',
+    'Return one JSON object {"replies":[...],'+IMPACT_SPEC,
+    'Reply item for a cast member: {"who":"cast","id":"power","text":"..."}. Reply item for a stranger: {"who":"stranger","id":"existing id or omit","name":"...","handle":"...","kind":"fan|troll|rival|reporter|recruiter|cultist|shopkeeper|kid|conspiracy|scammer|neighbor","bio":"at most 80 characters","text":"..."}.');
+  const v=await aiJson(L.join('\n'),{tier:'quick'});
+  return Array.isArray(v)?{replies:v}:v;
+}
+function applyReplies(p,res){
+  const now=Date.now();
+  const items=pickItems(res.replies,4).map((x,i)=>({id:uid(),by:x.by,text:clean(x.text,220),t:now+i}));
+  if(!items.length)throw {code:'empty_completion'};
+  p.replies=p.replies.concat(items);
+  S.stats.aura+=items.filter(r=>byId[r.by]).length;
+  engage();
+  const im=res.impact;
+  if(im&&typeof im==='object'){
+    const r=applyImpact(im,{title:clean(im.title,44),text:clean(im.why,160)});
+    if(r.act.honor||r.act.aura||r.act.followers){
+      (p.impacts=p.impacts||[]).push({title:r.title,why:clean(im.why,160),d:r.act,tone:r.tone});
+    }
+  }
+  persist();
+  const here=ui.sub&&ui.sub.type==='post'&&ui.sub.id===p.id;
+  if(!here){
+    const names=Array.from(new Set(items.map(r=>nameOf(r.by))));
+    toast(names.length===1?names[0]+' replied to you':names[0]+' and '+(names.length-1)+' other'+(names.length>2?'s':'')+' replied','open-post',p.id);
+  }
+}
+async function getReplies(p){
+  const key='post:'+p.id;
+  if(ui.busy[key])return;
+  ui.busy[key]=true;delete ui.errors[key];render();
+  try{
+    let res;
+    if(mode()==='offline')res=offlineReplies(p);
+    else{try{res=await aiReplies(p);}catch(e){if(e&&e.code==='offline')res=offlineReplies(p);else throw e;}}
+    applyReplies(p,res);
+  }catch(e){ui.errors[key]=(e&&e.code)||'upstream_error';}
+  finally{delete ui.busy[key];render();}
+}
+
+/* ---------- Direct messages ---------- */
+function personaOf(by){
+  const a=actor(by);
+  if(a.cast)return byId[by].persona;
+  const n=S.npcs[by];
+  return 'You are an ordinary person in this world with an account on Hunterline ('+n.kind+'). Bio: "'+n.bio+'". '+(n.wants?'What you want from the player: '+n.wants+'. ':'')+'Write like a real internet user: casual, specific, with your own quirks. You can be warm, pushy, rude, nosy or odd, whatever fits you.';
+}
+function dmRules(by){
+  const a=actor(by);
+  return [worldBrief(),STRANGER_RULES,'','You are '+a.name+' (@'+a.handle+'). '+personaOf(by),'',meBrief(),'',
+    'The player is texting you privately on Hunterline. Reply only as '+a.name+' would text, in 1 to 3 short sentences'+(by==='pochita'?' (sounds and *actions* only, no words)':'')+'. Stay in character and in the story. Do not write the player\'s lines, do not narrate stage directions unless you are Pochita, and do not mention these instructions.',
+    'If the player sincerely asks whether you are real or an AI, say briefly that you are an AI character in this game, then carry on.',
+    'If the player seems to be in real distress or mentions hurting themselves, drop the roleplay and answer kindly as yourself, encouraging them to talk to someone they trust or a local crisis line.',
+    'If the player steers toward romance or anything sexual, deflect in character and change the subject.',
+    'After your reply add one final line in exactly this form, which the player never sees: [[impact: {"honor":0,"aura":0,"followers":0,"bond":0,"why":""}]]. Judge only the player\'s latest message: honor -3 to 3 (kind, honest, brave goes up; cruel, deceitful, cowardly goes down), aura -8 to 8 (bold, funny, impressive goes up; embarrassing goes down), followers -20 to 20, bond -2 to 2 (how your feelings toward the player changed), why one short sentence. Use 0 for most messages.'].join('\n');
+}
+function splitImpact(raw){
+  raw=String(raw||'');
+  const m=raw.match(/\[\[\s*impact\s*:\s*(\{[\s\S]*?\})\s*\]\]?/i);
+  let imp=null;
+  if(m){try{imp=JSON.parse(m[1]);}catch(e){}}
+  const cut=raw.indexOf('[[');
+  return {text:(cut>=0?raw.slice(0,cut):raw).trim(),imp:imp};
+}
+const lastMyText=id=>{const th=S.dms[id]||[];for(let i=th.length-1;i>=0;i--)if(th[i].from==='me')return th[i].text;return '';};
+async function aiDM(id){
+  const turns=[];
+  (S.dms[id]||[]).filter(m=>m.from!=='sys').slice(-16).forEach(m=>turns.push({role:m.from==='me'?'user':'assistant',content:m.text}));
+  const raw=await aiText({system:dmRules(id),turns:turns,tier:'quick',onText:u=>{
+    const t=u.text.split('[[')[0].replace(/\[+$/,'');
+    ui.liveText[id]=t;
+    const el=document.getElementById('live');
+    if(el){el.textContent=t;scrollEnd();}
+  }});
+  return splitImpact(raw);
+}
+async function dmReply(id){
+  const key='dm:'+id;
+  if(ui.busy[key])return;
+  ui.busy[key]=true;ui.liveText[id]='';delete ui.errors[key];render();scrollEnd();
+  try{
+    let out;
+    if(mode()==='offline')out=offlineDM(id,lastMyText(id));
+    else{try{out=await aiDM(id);}catch(e){if(e&&e.code==='offline')out=offlineDM(id,lastMyText(id));else throw e;}}
+    const text=clean(out.text,600);
+    if(!text)throw {code:'empty_completion'};
+    S.dms[id].push({from:id,text:text,t:Date.now()});
+    if(out.imp&&typeof out.imp==='object'){
+      applyImpact(out.imp,{title:clean(out.imp.title,44),text:clean(out.imp.why,160),bondWho:byId[id]?id:null});
+    }
+    const here=ui.sub&&ui.sub.type==='chat'&&ui.sub.id===id;
+    if(!here){S.unread[id]=true;toast(actor(id).name+' sent you a message','chat',id);}
+    persist();
+  }catch(e){ui.errors[key]=(e&&e.code)||'upstream_error';}
+  finally{delete ui.busy[key];delete ui.liveText[id];render();scrollEnd();}
+}
+
+/* ---------- Actions ---------- */
+function sendPost(text){
+  text=clean(text,280);if(!text)return;
+  const p={id:uid(),by:'me',text:text,t:Date.now(),likes:0,reposts:0,liked:false,reposted:false,replies:[]};
+  S.posts.unshift(p);ui.drafts['c-post']='';
+  S.stats.aura+=1;S.stats.followers+=rnd(0,2);
+  persist();render();
+  getReplies(p);
+}
+function sendReply(text){
+  const s=ui.sub;if(!s||s.type!=='post')return;
+  const p=getPost(s.id);if(!p||ui.busy['post:'+p.id])return;
+  text=clean(text,280);if(!text)return;
+  p.replies.push({id:uid(),by:'me',text:text,t:Date.now()});
+  ui.drafts['reply-input']='';const el=$('#reply-input');if(el){el.value='';autosize(el);}
+  persist();render();
+  getReplies(p);
+}
+function sendDM(id,text){
+  text=clean(text,500);if(!text||ui.busy['dm:'+id])return;
+  if(!S.dms[id])S.dms[id]=[];
+  S.dms[id].push({from:'me',text:text,t:Date.now()});
+  ui.drafts['dm-input']='';const el=$('#dm-input');if(el){el.value='';autosize(el);}
+  delete ui.errors['dm:'+id];persist();render();
+  dmReply(id);
+}
+function toggle(id,kind){
+  const p=getPost(id);if(!p)return;
+  if(kind==='like'){p.liked=!p.liked;p.likes+=p.liked?1:-1;}
+  else{p.reposted=!p.reposted;p.reposts+=p.reposted?1:-1;}
+  persist();render();
+}
+function toggleFollow(id){
+  const i=S.follows.indexOf(id);
+  if(i>=0)S.follows.splice(i,1);else S.follows.push(id);
+  persist();render();
+}
+function submitSetup(){
+  const f=ui.form;
+  const name=(f.name||'').trim();
+  const handle=(f.handle||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const err=m=>{const e=$('#su-err');if(e)e.textContent=m;};
+  if(!name){err('Add a display name.');return;}
+  if(handle.length<2){err('Pick a handle with at least 2 letters or numbers.');return;}
+  if(CAST.some(c=>c.handle===handle)){err('That handle belongs to a character. Pick another.');return;}
+  const me={name:name,handle:handle,role:f.role,bio:(f.bio||'').trim(),hue:f.hue};
+  if(S){S.me=me;ui.editing=false;persist();renderAll();}
+  else{S=newState(me);ui.tab='home';persist();renderAll();}
+}
+function wipe(){
+  lsDel(LS_KEY);lsDel(LS_AV);
+  if(dbGame&&!dbReadOnly){try{dbGame.delete();dbDms.delete();dbAv.delete();}catch(e){}}
+  lastW={game:'',dms:'',av:''};
+  S=null;AVS={};ui.tab='home';ui.sub=null;ui.stack=[];ui.confirmReset=false;ui.drafts={};ui.busy={};ui.errors={};
+  ui.form={name:'',handle:'',role:'Civilian',bio:'',hue:215,handleTouched:false};
+  renderAll();
+}
+async function toAvatar(file){
+  const size=128;
+  let bmp=null;
+  if(window.createImageBitmap){try{bmp=await createImageBitmap(file);}catch(e){}}
+  if(!bmp){
+    bmp=await new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{URL.revokeObjectURL(u);res(im);};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('bad'));};im.src=u;});
+  }
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,s=Math.min(w,h);
+  const c=document.createElement('canvas');c.width=c.height=size;
+  c.getContext('2d').drawImage(bmp,(w-s)/2,(h-s)/2,s,s,0,0,size,size);
+  return c.toDataURL('image/jpeg',0.82);
+}
+function pickImage(id){const inp=$('#file-in');inp.dataset.for=id;inp.value='';inp.click();}
+
+/* ---------- Navigation ---------- */
+function openSub(sub){
+  if(ui.sub)ui.stack.push(ui.sub);
+  ui.sub=sub;
+  if(sub.type==='chat'&&S.unread[sub.id]){delete S.unread[sub.id];persist();}
+  renderAll();
+  if(sub.type==='chat')scrollEnd();else window.scrollTo(0,0);
+}
+function back(){
+  if(ui.editing){ui.editing=false;}else{ui.sub=ui.stack.pop()||null;}
+  renderAll();window.scrollTo(0,0);
+}
+function switchTab(t){ui.tab=t;ui.sub=null;ui.stack=[];ui.editing=false;ui.confirmReset=false;renderAll();window.scrollTo(0,0);}
+function scrollEnd(){if(ui.sub&&ui.sub.type==='chat')requestAnimationFrame(()=>window.scrollTo(0,document.documentElement.scrollHeight));}
+window.__hunterBack=function(){
+  if(!S)return false;
+  if(ui.editing||ui.sub){back();return true;}
+  if(ui.tab!=='home'){switchTab('home');return true;}
+  return false;
+};
+let toastT;
+function toastHTML(html){
+  const el=$('#toast');
+  el.innerHTML=html;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},8000);
+}
+function toast(msg,act,id){
+  toastHTML('<span>'+esc(msg)+'</span>'+(act?'<button data-act="'+esc(act)+'" data-id="'+esc(id)+'">Open</button>':''));
+}
+
+/* ---------- Views ---------- */
+function actsHTML(p){
+  const notMe=p.by!=='me';
+  return '<div class="acts">'+
+   '<button data-act="open-post" data-id="'+p.id+'" aria-label="Open replies">'+ic(ICON.reply)+'<span>'+p.replies.length+'</span></button>'+
+   '<button class="'+(p.reposted?'on':'')+'" data-act="repost" data-id="'+p.id+'" aria-pressed="'+!!p.reposted+'" aria-label="Repost">'+ic(ICON.repost)+'<span>'+p.reposts+'</span></button>'+
+   '<button class="like '+(p.liked?'on':'')+'" data-act="like" data-id="'+p.id+'" aria-pressed="'+!!p.liked+'" aria-label="Like">'+ic(ICON.like)+'<span>'+p.likes+'</span></button>'+
+   (notMe?'<button data-act="chat" data-id="'+p.by+'" aria-label="Message '+esc(nameOf(p.by))+'">'+ic(ICON.send)+'</button>':'')+
+  '</div>';
+}
+const kindTag=a=>a.npc?'<span class="kind">'+esc(a.kind)+'</span>':'';
+function postHTML(p,detail){
+  const a=actor(p.by);
+  return '<article class="post'+(detail?' detail':'')+'"'+(detail?'':' data-open="'+p.id+'"')+'>'+
+   '<button class="avbtn" data-act="profile" data-id="'+p.by+'" aria-label="Open profile of '+esc(a.name)+'">'+av(p.by)+'</button>'+
+   '<div class="pb"><div class="meta"><b class="nm">'+esc(a.name)+'</b><span class="hd">@'+esc(a.handle)+'</span>'+kindTag(a)+'<span class="dt">·</span><time class="hd">'+ago(p.t)+'</time></div>'+
+   '<p class="txt">'+fmt(p.text)+'</p>'+actsHTML(p)+'</div></article>';
+}
+function replyHTML(r){
+  const a=actor(r.by);
+  return '<div class="post reply"><button class="avbtn" data-act="profile" data-id="'+r.by+'" aria-label="Open profile of '+esc(a.name)+'">'+av(r.by,'sm')+'</button>'+
+   '<div class="pb"><div class="meta"><b class="nm">'+esc(a.name)+'</b><span class="hd">@'+esc(a.handle)+'</span>'+kindTag(a)+'<span class="dt">·</span><time class="hd">'+ago(r.t)+'</time></div>'+
+   '<p class="txt">'+fmt(r.text)+'</p>'+
+   (r.by!=='me'?'<div class="acts"><button data-act="chat" data-id="'+r.by+'" aria-label="Message '+esc(a.name)+'">'+ic(ICON.send,16)+'</button></div>':'')+'</div></div>';
+}
+const typingHTML=label=>'<div class="typing"><span class="dots"><i></i><i></i><i></i></span><span>'+esc(label)+'</span></div>';
+function impactHTML(im){
+  return '<div class="impact"><div class="row"><span class="tone '+im.tone+'">'+TONE_LABEL[im.tone]+'</span><b>'+esc(im.title)+'</b></div>'+(im.why?'<p class="fine">'+esc(im.why)+'</p>':'')+chipsHTML(im.d,null)+'</div>';
+}
+function homeView(){
+  const list=S.posts.filter(p=>ui.feed==='for'||p.by==='me'||S.follows.indexOf(p.by)>=0);
+  const m=mode();
+  let status;
+  if(ui.busy.feed)status='<span class="dots"><i></i><i></i><i></i></span><span class="status">Reading the city</span><button class="btn ghost small" data-act="stop-refresh">Stop</button>';
+  else status='<button class="btn ghost small" data-act="refresh">Load new posts</button>'+
+    '<span class="autorow"><span id="auto-lab">Auto</span><button class="switch" id="auto-sw" role="switch" aria-checked="'+!!S.auto+'" aria-labelledby="auto-lab" data-act="auto"></button></span>';
+  const sub=ui.errors.feed
+    ?'<span class="status">'+esc(errCopy(ui.errors.feed))+'</span>'
+    :'<span class="status">Next update <b id="next-in"></b> · '+esc(MODE_LABEL[m])+'</span>';
+  return '<div class="seg" role="group" aria-label="Feed">'+
+    '<button data-act="feed" data-v="for" aria-pressed="'+(ui.feed==='for')+'">For you</button>'+
+    '<button data-act="feed" data-v="following" aria-pressed="'+(ui.feed==='following')+'">Following</button></div>'+
+    (m==='offline'&&!STANDALONE?'<div class="note">Claude replies are not available in this view, so characters use built-in lines.</div>':'')+
+    '<form id="post-form" class="compose">'+av('me')+'<div class="cb"><textarea id="c-post" rows="2" maxlength="280" aria-label="Write a post" placeholder="What\'s happening in the city?">'+esc(ui.drafts['c-post']||'')+'</textarea>'+
+    '<div class="crow"><span class="count" id="c-count">280</span><button class="btn" id="c-btn" type="submit" disabled>Post</button></div></div></form>'+
+    '<div class="refresh">'+status+'<div style="flex-basis:100%">'+sub+'</div></div>'+
+    (list.length?list.map(p=>postHTML(p)).join(''):'<p class="empty">You are not following anyone yet. Open the Cast tab to follow characters.</p>');
+}
+function postView(id){
+  const p=getPost(id);
+  if(!p)return '<p class="empty">That post is gone.</p>';
+  const key='post:'+p.id;
+  return postHTML(p,true)+
+    '<h3 class="sec">Replies</h3>'+
+    (p.replies.length?p.replies.map(replyHTML).join(''):(ui.busy[key]?'':'<p class="empty">No replies yet.</p>'))+
+    (ui.busy[key]?typingHTML('People are typing'):'')+
+    (ui.errors[key]?'<div class="refresh"><span class="status">'+esc(errCopy(ui.errors[key]))+'</span><button class="btn ghost small" data-act="retry-post" data-id="'+p.id+'">Try again</button></div>':'')+
+    (p.impacts&&p.impacts.length?p.impacts.map(impactHTML).join(''):'');
+}
+function profileView(id){
+  const a=actor(id);
+  if(a.name==='Someone'&&!a.cast)return '<p class="empty">Profile not found.</p>';
+  const fol=S.follows.indexOf(id)>=0;
+  const ps=S.posts.filter(p=>p.by===id);
+  const b=S.bond[id]||0;
+  return '<div class="prof"><div class="phead">'+av(id,'lg')+'<div class="idtxt"><h2 class="pname">'+esc(a.name)+'</h2><div class="hd">@'+esc(a.handle)+'</div><span class="role">'+esc(a.role)+'</span></div></div>'+
+    '<p class="pbio">'+esc(a.bio||'No bio.')+'</p>'+
+    (a.cast?'<p class="bond">Bond with you: <b>'+bondLabel(b)+'</b> ('+(b>0?'+':b<0?'−':'')+Math.abs(b)+')</p>':'')+
+    '<div class="row">'+(a.cast?'<button class="btn'+(fol?' ghost':'')+'" data-act="follow" data-id="'+id+'">'+(fol?'Following':'Follow')+'</button>':'')+
+    '<button class="btn ghost" data-act="chat" data-id="'+id+'">Message</button>'+
+    '<button class="btn ghost" data-act="pick-img" data-id="'+id+'">Change picture</button>'+
+    (AVS[id]?'<button class="btn ghost" data-act="clear-img" data-id="'+id+'">Use default</button>':'')+'</div></div>'+
+    '<h3 class="sec">Posts</h3>'+(ps.length?ps.map(p=>postHTML(p)).join(''):'<p class="empty">No posts yet.</p>');
+}
+function castView(){
+  const strangers=Object.values(S.npcs).slice().reverse();
+  return '<h1 class="h1" style="margin-top:20px">The cast</h1><p class="lede">Ten characters, plus everyone else who shows up. Follow the cast for posts and message anyone.</p>'+
+    '<div class="list" style="margin-top:12px">'+CAST.map(c=>{
+      const fol=S.follows.indexOf(c.id)>=0;
+      return '<div class="rowitem"><button class="avbtn" data-act="profile" data-id="'+c.id+'" aria-label="Open profile of '+esc(c.name)+'">'+av(c.id)+'</button>'+
+        '<button class="who" data-act="profile" data-id="'+c.id+'"><b>'+esc(c.name)+'</b><span>'+esc(c.role)+'</span></button>'+
+        '<div class="end"><button class="chipbtn'+(fol?' on':'')+'" data-act="follow" data-id="'+c.id+'" aria-pressed="'+fol+'">'+(fol?'Following':'Follow')+'</button></div></div>';
+    }).join('')+'</div>'+
+    '<h3 class="sec">Strangers you have met</h3>'+
+    (strangers.length?'<div class="list">'+strangers.map(n=>
+      '<div class="rowitem"><button class="avbtn" data-act="profile" data-id="'+n.id+'" aria-label="Open profile of '+esc(n.name)+'">'+av(n.id)+'</button>'+
+      '<button class="who" data-act="profile" data-id="'+n.id+'"><b>'+esc(n.name)+'</b><span>@'+esc(n.handle)+' · '+esc(n.kind)+'</span></button>'+
+      '<div class="end"><button class="chipbtn" data-act="chat" data-id="'+n.id+'">Message</button></div></div>').join('')+'</div>'
+     :'<p class="empty">Nobody yet. Post something or load new posts and strangers will turn up.</p>');
+}
+function dmsView(){
+  const ids=Object.keys(S.dms).filter(k=>S.dms[k].length).sort((a,b)=>lastT(S.dms[b])-lastT(S.dms[a]));
+  const fresh=CAST.filter(c=>!(S.dms[c.id]&&S.dms[c.id].length));
+  const row=id=>{
+    const a=actor(id),th=S.dms[id]||[],last=th.filter(m=>m.from!=='sys').pop();
+    const open=th.some(m=>m.req&&S.requests[m.req]&&S.requests[m.req].status==='open');
+    const prev=last?((last.from==='me'?'You: ':'')+last.text):'Say hi';
+    return '<button class="rowitem" data-act="chat" data-id="'+id+'">'+av(id)+
+      '<span class="who"><b>'+esc(a.name)+(a.npc?' <span class="kind">'+esc(a.kind)+'</span>':'')+'</b><span>'+esc(prev)+'</span></span>'+
+      '<span class="end">'+(open?'<span class="tag">Needs answer</span>':'')+(S.unread[id]?'<i class="pip2" aria-label="Unread"></i>':'')+(last?ago(last.t):'')+'</span></button>';
+  };
+  return '<h1 class="h1" style="margin-top:20px">Messages</h1><p class="lede">Characters and strangers can both message you. Some ask for something, and what you answer has consequences.</p>'+
+    '<h3 class="sec">Inbox</h3>'+
+    (ids.length?'<div class="list">'+ids.map(row).join('')+'</div>':'<p class="empty">No conversations yet. Start one below.</p>')+
+    (fresh.length?'<h3 class="sec">Message the cast</h3><div class="list">'+fresh.map(c=>row(c.id)).join('')+'</div>':'');
+}
+function chatView(id){
+  const a=actor(id);
+  const th=S.dms[id]||[];
+  const key='dm:'+id;
+  let h='<div class="msgs">';
+  if(!th.length&&!ui.busy[key])h+='<p class="fine">'+(a.cast?'Replies are written live by Claude playing '+esc(a.name)+'.':'')+' Start with a line of your own or pick one.</p><div class="openers">'+OPENERS.map(o=>'<button class="chip" data-act="opener" data-id="'+id+'" data-v="'+esc(o)+'">'+esc(o)+'</button>').join('')+'</div>';
+  th.forEach(m=>{
+    if(m.from==='sys'){
+      h+='<div class="outcome"><div class="oh"><span class="tone '+(m.tone||'neutral')+'">'+TONE_LABEL[m.tone||'neutral']+'</span><b>'+esc(m.title)+'</b></div>'+(m.text?'<p class="fine">'+esc(m.text)+'</p>':'')+chipsHTML(m.d||{},m.bond)+'</div>';
+      return;
+    }
+    h+='<div class="bubble '+(m.from==='me'?'me':'them')+'">'+esc(m.text)+'</div>';
+    const r=m.req&&S.requests[m.req];
+    if(r&&r.status==='open'){
+      h+='<span class="choicehint">Your move</span><div class="choices" role="group" aria-label="Your choices">'+r.options.map(o=>'<button class="choice" data-act="choose" data-req="'+r.id+'" data-opt="'+o.id+'">'+esc(o.label)+'</button>').join('')+'</div>';
+    }
+  });
+  if(ui.busy[key]){const lt=ui.liveText[id];h+='<div class="bubble them" id="live">'+(lt?esc(lt):'<span class="dots"><i></i><i></i><i></i></span>')+'</div>';}
+  h+='</div>';
+  if(ui.errors[key])h+='<div class="refresh"><span class="status">'+esc(errCopy(ui.errors[key]))+'</span><button class="btn ghost small" data-act="retry-dm" data-id="'+id+'">Try again</button></div>';
+  return h;
+}
+function logHTML(l){
+  return '<div class="logitem"><div class="oh"><span class="tone '+l.tone+'">'+TONE_LABEL[l.tone]+'</span><b>'+esc(l.title)+'</b><time>'+ago(l.t)+'</time></div>'+(l.text?'<p>'+esc(l.text)+'</p>':'')+chipsHTML(l.d,l.bond)+'</div>';
+}
+function meView(){
+  const m=S.me,st=S.stats;
+  const mine=S.posts.filter(p=>p.by==='me');
+  const pos=((st.honor+100)/200*100).toFixed(1);
+  const bonds=CAST.filter(c=>S.bond[c.id]);
+  const md=mode();
+  return '<div class="idcard"><div class="idband"><span>Resident ID</span><span>'+idNo(m.handle)+'</span></div>'+
+    '<div class="idbody">'+av('me','lg')+'<div class="idtxt"><h2 class="pname">'+esc(m.name)+'</h2><div class="hd">@'+esc(m.handle)+'</div><span class="role">'+esc(m.role)+'</span></div></div>'+
+    (m.bio?'<p class="idbio">'+esc(m.bio)+'</p>':'')+
+    '<div class="stats"><div><b>'+st.followers+'</b><span>Followers</span></div><div><b>'+S.follows.length+'</b><span>Following</span></div><div><b>'+st.aura+'</b><span>Aura</span></div></div>'+
+    '<div class="honor"><div class="hrow"><span class="lab">Honor</span><span class="hv">'+tier(st.honor)+' · '+(st.honor>0?'+':st.honor<0?'−':'')+Math.abs(st.honor)+'</span></div>'+
+    '<div class="track" role="img" aria-label="Honor '+st.honor+' out of 100"><i class="mark" style="left:'+pos+'%"></i></div>'+
+    '<div class="hends"><span>Notorious</span><span>Honorable</span></div></div>'+
+    '<div class="idfoot"><span>Registered '+esc(dateStr(S.joined))+'</span><button class="link" data-act="edit-me">Edit ID</button></div></div>'+
+    '<p class="fine" style="margin-top:10px">Aura grows when people like and answer you. Honor moves with your choices. Followers follow both.</p>'+
+    '<h3 class="sec">Consequences</h3>'+
+    (S.log.length?S.log.slice(0,12).map(logHTML).join(''):'<p class="empty">Your choices will show up here with what they cost and what they earned. Some consequences arrive later.</p>')+
+    (S.pending.length?'<p class="fine" style="margin-top:10px">'+S.pending.length+' consequence'+(S.pending.length>1?'s are':' is')+' still on the way.</p>':'')+
+    (bonds.length?'<h3 class="sec">Bonds</h3><div class="list">'+bonds.map(c=>'<button class="rowitem" data-act="profile" data-id="'+c.id+'">'+av(c.id)+'<span class="who"><b>'+esc(c.name)+'</b><span>'+bondLabel(S.bond[c.id])+'</span></span><span class="end"></span></button>').join('')+'</div>':'')+
+    '<h3 class="sec">Your posts</h3>'+
+    (mine.length?mine.map(p=>postHTML(p)).join(''):'<p class="empty">You have not posted yet. Say something on Home and see who answers.</p>')+
+    '<h3 class="sec">Settings</h3>'+
+    '<div class="setting"><b id="set-auto">Update the feed every 5 minutes</b><button class="switch" role="switch" aria-checked="'+!!S.auto+'" aria-labelledby="set-auto" data-act="auto"></button>'+
+      '<span class="fine">'+(md==='claude'?'Uses your Claude usage once you have allowed Claude on this page. Until then it uses built-in stories.':md==='key'?'Uses your own API key.':'Uses built-in stories.')+' It runs while the app is open.</span></div>'+
+    '<div class="setting"><b>Replies come from</b><span class="tag">'+esc(MODE_LABEL[md])+'</span></div>'+
+    (STANDALONE?
+      '<div class="setting" style="display:block"><b>Live AI replies (optional)</b><p class="fine" style="margin-top:4px">Offline, characters use built-in lines. Paste your own Anthropic API key to get live replies when you are online. It stays on this device and is sent only to Anthropic. Usage is billed to your API account.</p>'+
+        '<div class="keyrow"><input id="key-in" type="password" autocomplete="off" aria-label="Anthropic API key" value="'+esc(ui.drafts['key-in']||'')+'" placeholder="'+(apiKey()?'Key saved on this device':'sk-ant-...')+'"><button class="btn small" data-act="save-key">Save key</button>'+(apiKey()?'<button class="btn ghost small" data-act="clear-key">Remove key</button>':'')+'</div>'+
+        (ui.keyMsg?'<p class="fine" style="margin-top:6px">'+esc(ui.keyMsg)+'</p>':'')+'</div>'+
+      '<div class="setting"><b id="set-th">Theme</b><div class="chips2" role="group" aria-labelledby="set-th">'+['auto','light','dark'].map(t=>'<button class="chipbtn'+((lsGet(LS_THEME)||'auto')===t?' on':'')+'" data-act="theme" data-v="'+t+'">'+cap(t)+'</button>').join('')+'</div></div>':'')+
+    '<p class="fine" style="margin-top:14px">Characters are fan-written by Claude and everything here is fiction. Avatars are generated placeholders unless you set your own. Strangers are made up and can say anything that fits them, within PG-13.</p>'+
+    '<div class="row" style="margin-top:16px">'+(ui.confirmReset
+      ?'<span class="fine">Delete your profile, posts, messages and pictures?</span><button class="btn" data-act="reset-do">Delete everything</button><button class="btn ghost" data-act="reset-cancel">Cancel</button>'
+      :'<button class="btn ghost" data-act="reset-ask">Reset world</button>')+'</div>';
+}
+function setupView(){
+  const f=ui.form,edit=!!S;
+  return '<form id="su-form" class="setup" autocomplete="off">'+
+    '<h1 class="h1">'+(edit?'Edit your ID':'Who are you in Tokyo?')+'</h1>'+
+    '<p class="lede">'+(edit?'Changes show on your posts and in your chats.':'Pick a name and a role. The cast will treat you as part of the city.')+'</p>'+
+    '<div class="idpreview">'+avRaw(AVS.me,ini(f.name||'You'),f.hue,hash(f.handle||'me')%6,'lg','su-av')+'<div class="idtxt"><div class="pname" id="su-pn">'+esc(f.name||'Your name')+'</div><div class="hd" id="su-ph">@'+esc(f.handle||'handle')+'</div></div></div>'+
+    '<div class="row"><button type="button" class="btn ghost small" data-act="pick-img" data-id="me">'+(AVS.me?'Change picture':'Upload picture')+'</button>'+(AVS.me?'<button type="button" class="btn ghost small" data-act="clear-img" data-id="me">Remove</button>':'')+'</div>'+
+    '<div class="field"><label for="su-name">Display name</label><input id="su-name" maxlength="24" value="'+esc(f.name)+'" placeholder="Rin"></div>'+
+    '<div class="field"><label for="su-handle">Handle</label><input id="su-handle" maxlength="15" value="'+esc(f.handle)+'" placeholder="rin_tokyo" autocapitalize="off" spellcheck="false"></div>'+
+    '<div class="field"><span class="lab" id="su-rl">Role</span><div class="chips2" role="group" aria-labelledby="su-rl">'+ROLES.map(r=>'<button type="button" class="chip" data-act="role" data-v="'+esc(r)+'" aria-pressed="'+(f.role===r)+'">'+esc(r)+'</button>').join('')+'</div></div>'+
+    '<div class="field"><label for="su-bio">Bio (optional)</label><textarea id="su-bio" rows="2" maxlength="120" placeholder="One line about you">'+esc(f.bio)+'</textarea></div>'+
+    '<div class="field"><span class="lab" id="su-hl">Avatar color</span><div class="swatches" role="group" aria-labelledby="su-hl">'+HUES.map((h,i)=>'<button type="button" class="sw" data-act="hue" data-v="'+h+'" aria-label="Avatar color '+(i+1)+'" aria-pressed="'+(f.hue===h)+'" style="--h:'+h+'"></button>').join('')+'</div></div>'+
+    '<p class="err" id="su-err" role="alert"></p>'+
+    '<div class="row"><button class="btn" type="submit">'+(edit?'Save':'Join Hunterline')+'</button>'+(edit?'<button type="button" class="btn ghost" data-act="back">Cancel</button>':'')+'</div>'+
+    (edit||STANDALONE?'':'<p class="fine">Characters answer through Claude, so your browser asks you to allow it the first time you post or message. Replies use your own Claude usage.</p>')+
+  '</form>';
+}
+
+/* ---------- Shell ---------- */
+function view(){
+  if(!S||ui.editing)return setupView();
+  const s=ui.sub;
+  if(s){
+    if(s.type==='post')return postView(s.id);
+    if(s.type==='profile')return profileView(s.id);
+    if(s.type==='chat')return chatView(s.id);
+  }
+  if(ui.tab==='cast')return castView();
+  if(ui.tab==='dms')return dmsView();
+  if(ui.tab==='me')return meView();
+  return homeView();
+}
+function headerHTML(){
+  const backBtn='<button class="iconbtn" data-act="back" aria-label="Back">'+ic(ICON.back,22)+'</button>';
+  if(!S)return '<span class="brand">HUNTERLINE</span>';
+  if(ui.editing)return backBtn+'<span class="ttl"><span class="t1">Edit ID</span></span>';
+  const s=ui.sub;
+  if(s){
+    if(s.type==='chat'){const a=actor(s.id);return backBtn+'<span class="ttl">'+av(s.id,'sm')+'<span style="min-width:0"><span class="t1">'+esc(a.name)+'</span><span class="t2">@'+esc(a.handle)+(a.npc?' · '+esc(a.kind):'')+'</span></span></span>';}
+    if(s.type==='profile')return backBtn+'<span class="ttl"><span class="t1">'+esc(actor(s.id).name)+'</span></span>';
+    return backBtn+'<span class="ttl"><span class="t1">Post</span></span>';
+  }
+  return '<span class="brand">HUNTERLINE</span><span class="strap">Tokyo / Div. 4</span>';
+}
+function composerHTML(fid,tid,ph,label){
+  return '<form id="'+fid+'" class="composer"><textarea id="'+tid+'" rows="1" maxlength="500" enterkeyhint="send" placeholder="'+esc(ph)+'" aria-label="'+esc(ph)+'">'+esc(ui.drafts[tid]||'')+'</textarea><button class="btn" type="submit">'+esc(label)+'</button></form>';
+}
+function composerView(){const s=ui.sub;return !!(S&&!ui.editing&&s&&(s.type==='chat'||s.type==='post'));}
+function navHTML(){
+  const unread=Object.keys(S.unread).some(k=>S.unread[k]);
+  const tabs=[['home','Home',ICON.home],['cast','Cast',ICON.cast],['dms','Messages',ICON.dm],['me','Me',ICON.me]];
+  return '<nav class="nav" aria-label="Main">'+tabs.map(t=>'<button data-act="tab" data-v="'+t[0]+'"'+(ui.tab===t[0]&&!ui.sub?' aria-current="page"':'')+'>'+ic(t[2],22)+'<span>'+t[1]+'</span>'+(t[0]==='dms'&&unread?'<i class="pip" aria-label="Unread messages"></i>':'')+'</button>').join('')+'</nav>';
+}
+function bottomHTML(){
+  if(!S||ui.editing)return '';
+  const s=ui.sub;
+  if(s&&s.type==='chat')return composerHTML('dm-form','dm-input','Message '+actor(s.id).name,'Send');
+  if(s&&s.type==='post'){const p=getPost(s.id);return composerHTML('reply-form','reply-input','Reply'+(p?' to @'+handleOf(p.by):''),'Reply');}
+  return navHTML();
+}
+function tickCountdown(){
+  const el=document.getElementById('next-in');if(!el||!S)return;
+  if(!S.auto){el.textContent='off';return;}
+  if(ui.autoPaused){el.textContent='paused';return;}
+  if(ui.busy.feed){el.textContent='now';return;}
+  const r=Math.max(0,Math.ceil((S.lastRefresh+AUTO_MS-Date.now())/1000));
+  el.textContent=Math.floor(r/60)+':'+String(r%60).padStart(2,'0');
+}
+function syncBars(){
+  const s=ui.sub;
+  const b=document.querySelector('#bar button[type=submit]');
+  if(b){const key=s&&(s.type==='chat'?'dm:'+s.id:'post:'+s.id);b.disabled=!!(key&&ui.busy[key]);}
+  const ta=document.querySelector('#bar textarea');if(ta)autosize(ta);
+  const cp=$('#c-post');
+  if(cp){const n=cp.value.trim().length;const cb=$('#c-btn');if(cb)cb.disabled=n===0;const cc=$('#c-count');if(cc)cc.textContent=String(280-cp.value.length);}
+  tickCountdown();
+}
+function renderMain(){
+  const main=$('#main');
+  const ae=document.activeElement;
+  const keepId=ae&&ae.id&&main.contains(ae)?ae.id:null;
+  const sel=keepId&&typeof ae.selectionStart==='number'?ae.selectionStart:null;
+  main.innerHTML=view();
+  if(keepId){const el=document.getElementById(keepId);if(el){el.focus();if(sel!=null){try{el.setSelectionRange(sel,sel);}catch(e){}}}}
+}
+function render(){
+  if(!S&&!ui.editing)return;
+  renderMain();
+  if(!composerView()&&S&&!ui.editing)$('#bar').innerHTML=bottomHTML();
+  syncBars();
+}
+function renderAll(){
+  $('#top').innerHTML=headerHTML();
+  $('#bar').innerHTML=bottomHTML();
+  renderMain();
+  syncBars();
+}
+function autosize(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,120)+'px';}
+function applyTheme(){
+  const t=lsGet(LS_THEME)||'auto';
+  if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');
+  if(el){
+    const act=el.dataset.act,id=el.dataset.id,v=el.dataset.v;
+    if(act==='open-post'||act==='chat'||act==='goto-me'){$('#toast').hidden=true;}
+    switch(act){
+      case 'tab':switchTab(v);break;
+      case 'back':back();break;
+      case 'goto-me':switchTab('me');break;
+      case 'like':toggle(id,'like');break;
+      case 'repost':toggle(id,'repost');break;
+      case 'open-post':openSub({type:'post',id:id});break;
+      case 'profile':if(id==='me')switchTab('me');else openSub({type:'profile',id:id});break;
+      case 'chat':openSub({type:'chat',id:id});break;
+      case 'follow':toggleFollow(id);break;
+      case 'feed':ui.feed=v;render();break;
+      case 'refresh':refreshFeed();break;
+      case 'stop-refresh':if(ui.feedCtl)ui.feedCtl.abort();break;
+      case 'auto':S.auto=!S.auto;if(S.auto){S.lastRefresh=Date.now();ui.autoPaused=false;}persist();render();break;
+      case 'retry-dm':dmReply(id);break;
+      case 'retry-post':{const p=getPost(id);if(p)getReplies(p);break;}
+      case 'opener':sendDM(id,v);break;
+      case 'choose':choose(el.dataset.req,el.dataset.opt);break;
+      case 'pick-img':pickImage(id);break;
+      case 'clear-img':delete AVS[id];persistAv();if(S&&!ui.editing)renderAll();else renderMain();break;
+      case 'edit-me':ui.form=Object.assign({},S.me,{handleTouched:true});ui.editing=true;renderAll();window.scrollTo(0,0);break;
+      case 'reset-ask':ui.confirmReset=true;render();break;
+      case 'reset-cancel':ui.confirmReset=false;render();break;
+      case 'reset-do':wipe();break;
+      case 'save-key':{
+        const inp=$('#key-in');const k=inp?inp.value.trim():'';
+        if(!k){ui.keyMsg='Paste a key first.';}
+        else if(!/^sk-ant-/.test(k)){ui.keyMsg="That doesn't look like an Anthropic key. Keys start with sk-ant-.";}
+        else{lsSet(LS_KEYAPI,k);ui.drafts['key-in']='';ui.keyMsg='Saved. Characters will use it while you are online.';}
+        render();break;}
+      case 'clear-key':lsDel(LS_KEYAPI);ui.keyMsg='Key removed. Characters use built-in lines.';render();break;
+      case 'theme':lsSet(LS_THEME,v);applyTheme();render();break;
+      case 'role':
+        ui.form.role=v;
+        document.querySelectorAll('[data-act="role"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+        break;
+      case 'hue':{
+        ui.form.hue=Number(v);
+        document.querySelectorAll('[data-act="hue"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+        const a=$('#su-av');if(a&&!AVS.me)a.style.setProperty('--h',v);
+        break;}
+    }
+    return;
+  }
+  const card=e.target.closest('[data-open]');
+  if(card&&!e.target.closest('button,a,textarea,input')){
+    openSub({type:'post',id:card.dataset.open});
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id)ui.drafts[t.id]=t.value;
+  if(t.id==='su-name'){
+    ui.form.name=t.value;
+    if(!ui.form.handleTouched){
+      const h=t.value.toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,15);
+      ui.form.handle=h;const hi=$('#su-handle');if(hi)hi.value=h;
+    }
+    const a=$('#su-av');if(a&&!AVS.me)a.textContent=ini(t.value||'You');
+    const pn=$('#su-pn');if(pn)pn.textContent=t.value||'Your name';
+    const ph=$('#su-ph');if(ph)ph.textContent='@'+(ui.form.handle||'handle');
+  }else if(t.id==='su-handle'){
+    ui.form.handleTouched=true;ui.form.handle=t.value;
+    const ph=$('#su-ph');if(ph)ph.textContent='@'+(t.value||'handle');
+  }else if(t.id==='su-bio'){ui.form.bio=t.value;}
+  else if(t.id==='c-post'){syncBars();}
+  else if(t.id==='dm-input'||t.id==='reply-input'){autosize(t);}
+});
+document.addEventListener('keydown',e=>{
+  const t=e.target;
+  if((t.id==='dm-input'||t.id==='reply-input')&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
+    e.preventDefault();
+    if(t.form&&t.form.requestSubmit)t.form.requestSubmit();
+  }
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const f=e.target;
+  if(f.id==='su-form')submitSetup();
+  else if(f.id==='post-form')sendPost($('#c-post').value);
+  else if(f.id==='reply-form')sendReply($('#reply-input').value);
+  else if(f.id==='dm-form'&&ui.sub&&ui.sub.type==='chat')sendDM(ui.sub.id,$('#dm-input').value);
+});
+$('#file-in').addEventListener('change',async e=>{
+  const inp=e.target,f=inp.files&&inp.files[0],id=inp.dataset.for;
+  inp.value='';
+  if(!f||!id)return;
+  try{
+    if(!AVS[id]&&Object.keys(AVS).length>=24)throw new Error('limit');
+    AVS[id]=await toAvatar(f);
+    persistAv();
+    if(S&&!ui.editing)renderAll();else renderMain();
+  }catch(err){
+    toast(err&&err.message==='limit'?'You can set up to 24 custom pictures. Remove one first.':"That image couldn't be used. Try a JPG or PNG.");
+  }
+});
+
+/* ---------- Timer: pending consequences and the 5 minute refresh ---------- */
+setInterval(()=>{
+  if(!S)return;
+  processPending();
+  if(S.auto&&!ui.autoPaused&&!ui.busy.feed&&document.visibilityState==='visible'&&Date.now()>=S.lastRefresh+AUTO_MS)refreshFeed({auto:true});
+  tickCountdown();
+},1000);
+
+/* ---------- Boot ---------- */
+applyTheme();
+S=lsRead(LS_KEY);
+if(S&&(!S.me||!Array.isArray(S.posts)))S=null;
+if(S)S=migrate(S);
+AVS=lsRead(LS_AV)||{};
+renderAll();
+initDb();
+})();
+</script>
+</body>
+</html>
